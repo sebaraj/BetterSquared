@@ -48,9 +48,9 @@ public class Server {
     }
 
     private static void connectToDatabase(Dotenv dotenv) throws SQLException {
-        String url = "jdbc:postgresql://localhost:" + dotenv.get("DBPORT") + "/" + dotenv.get("DBNAME");
-        String user = dotenv.get("DBUSER");
-        String password = dotenv.get("DBPASS");
+        String url = "jdbc:postgresql://"+ dotenv.get("DB_HOST") +":" + dotenv.get("DB_PORT") + "/" + dotenv.get("DB_NAME");
+        String user = dotenv.get("DB_USER");
+        String password = dotenv.get("DB_PASS");
 
         connection = DriverManager.getConnection(url, user, password);
         System.out.println("Connected to the PostgreSQL server successfully.");
