@@ -1,4 +1,4 @@
-package com.example.server;
+package com.authservice.server;
 
 import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.HttpHandler;
@@ -15,6 +15,8 @@ import java.sql.SQLException;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.json.JSONObject;
+import io.github.cdimascio.dotenv.Dotenv;
+
 
 public class Server {
 
@@ -22,8 +24,10 @@ public class Server {
 
     public static void main(String[] args) {
         try {
+            // Load the .env file
+            Dotenv dotenv = Dotenv.load();
             // connect to DB
-            connectToDatabase();
+            connectToDatabase(dotenv);
 
             // Create an HttpServer instance, listening on port 8080
             HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
@@ -43,10 +47,10 @@ public class Server {
         }
     }
 
-    private static void connectToDatabase() throws SQLException {
-        String url = "jdbc:postgresql://localhost:5432/authDB";
-        String user = "authuser";
-        String password = "111";
+    private static void connectToDatabase(Dotenv dotenv) throws SQLException {
+        String url = "jdbc:postgresql://localhost:" + dotenv.get("DBPORT") + "/" + dotenv.get("DBNAME");
+        String user = dotenv.get("DBUSER");
+        String password = dotenv.get("DBPASS");
 
         connection = DriverManager.getConnection(url, user, password);
         System.out.println("Connected to the PostgreSQL server successfully.");
@@ -98,6 +102,8 @@ public class Server {
                     OutputStream outputStream = exchange.getResponseBody();
                     outputStream.write(response.getBytes());
                     outputStream.close();
+
+                    // future: add message to RabbitMQ so gmail SMTP server can send email notification of new account to email provided
                 } catch (Exception e) {
                     e.printStackTrace();
                     String response = "Error processing sign-up request";
