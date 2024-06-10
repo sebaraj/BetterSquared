@@ -1,5 +1,6 @@
 package com.authservice.server;
 
+//import com.authservice;
 import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
@@ -14,9 +15,9 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.lang.Integer;
 import org.json.JSONObject;
 import io.github.cdimascio.dotenv.Dotenv;
-
 
 public class Server {
 
@@ -29,17 +30,18 @@ public class Server {
             // connect to DB
             connectToDatabase(dotenv);
 
-            // Create an HttpServer instance, listening on port 8080
-            HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
+            // Create an HttpServer instance, listening on port HTTP_SERVER_PORT with backlog HTTP_SERVER_BACKLOG
+            HttpServer server = HttpServer.create(new InetSocketAddress(Integer.parseInt(dotenv.get("HTTP_SERVER_PORT"))), Integer.parseInt(dotenv.get("HTTP_SERVER_BACKLOG")));
 
-            // Create a context for the "/printJson" endpoint
+            // Create a context for the endpoints
             server.createContext("/login", new LoginHandler());
             server.createContext("/signup", new SignupHandler());
             server.createContext("/changepassword", new ChangePassHandler());
             server.createContext("/JWTauth", new JWTauthHandler()); // cannot be accessed directly by client. called by gateway for jwt auth
 
             // Start the server
-            server.setExecutor(null); // creates a default executor
+            server.setExecutor(new ThreadPerTaskExecutor()); // currently spawns a new thread for each task.
+            // ^^  consider using a threadpool? https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ThreadPoolExecutor.html
             server.start();
             System.out.println("Server started on port 8080");
         } catch (SQLException | IOException e) {
@@ -103,7 +105,7 @@ public class Server {
                     outputStream.write(response.getBytes());
                     outputStream.close();
 
-                    // future: add message to RabbitMQ so gmail SMTP server can send email notification of new account to email provided
+                    // future: add message to RabbitMQ so gmail SMTP microservice can send email notification of new account to email provided
                 } catch (Exception e) {
                     e.printStackTrace();
                     String response = "Error processing sign-up request";

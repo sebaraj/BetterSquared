@@ -1,4 +1,5 @@
 com/authservice/server/Server$JWTauthHandler.class
+com/authservice/server/ThreadPerTaskExecutor.class
 com/authservice/server/Server$LoginHandler.class
 com/authservice/server/Server$SignupHandler.class
 com/authservice/server/Server.class
