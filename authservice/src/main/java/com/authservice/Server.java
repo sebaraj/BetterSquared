@@ -16,6 +16,8 @@ import java.sql.SQLException;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.lang.Integer;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.LinkedBlockingQueue;
 import org.json.JSONObject;
 import io.github.cdimascio.dotenv.Dotenv;
 
@@ -39,11 +41,21 @@ public class Server {
             server.createContext("/changepassword", new ChangePassHandler());
             server.createContext("/JWTauth", new JWTauthHandler()); // cannot be accessed directly by client. called by gateway for jwt auth
 
+            // New pausable thread pool executor
+            PausableThreadPoolExecutor executor = new PausableThreadPoolExecutor(10, 10, 30, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
+            int startedThreads = executor.prestartAllCoreThreads();
+            System.out.println("Current # of active threads in pool: " + startedThreads);
             // Start the server
-            server.setExecutor(new ThreadPerTaskExecutor()); // currently spawns a new thread for each task.
-            // ^^  consider using a threadpool? https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ThreadPoolExecutor.html
+            server.setExecutor(executor);
             server.start();
             System.out.println("Server started on port 8080");
+
+            // intercept signal to pause/resume executor (executor.pause() and executor.resume())
+
+
+            // gracefully shut down server on command/^c
+            // executor.shutdown();
+            // server.stop();
         } catch (SQLException | IOException e) {
             e.printStackTrace();
         }
