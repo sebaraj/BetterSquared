@@ -1,0 +1,5 @@
+com/example/server/Server$LoginHandler.class
+com/example/server/Server.class
+com/example/server/Server$SignupHandler.class
+com/example/server/Server$ChangePassHandler.class
+com/example/server/Server$JWTauthHandler.class
