@@ -6,22 +6,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
 
 public class ChangePasswordHandler implements HttpHandler {
+    private Connection connection;
+
+    public ChangePasswordHandler(Connection connection) {
+        this.connection = connection;
+    }
+
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-        if ("PUT".equals(exchange.getRequestMethod())) {
-            // Read the request body
-            InputStream inputStream = exchange.getRequestBody();
-            String requestBody = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-            System.out.println("Received JSON payload: " + requestBody);
-
-            // Send a response
-            String response = "JSON received";
-            exchange.sendResponseHeaders(200, response.getBytes().length);
-            OutputStream outputStream = exchange.getResponseBody();
-            outputStream.write(response.getBytes());
-            outputStream.close();
+        if ("PUT".equalsIgnoreCase(exchange.getRequestMethod())) {
+            // use rabbitmq, send email with unique token to use to verify/reset password?
         } else {
             exchange.sendResponseHeaders(405, -1); // 405 Method Not Allowed
         }

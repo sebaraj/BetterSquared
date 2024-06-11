@@ -24,13 +24,13 @@ public class Server {
             connectToDatabase(dotenv);
 
             // Create an HttpServer instance, listening on port HTTP_SERVER_PORT with backlog HTTP_SERVER_BACKLOG
-            HttpServer server = HttpServer.create(new InetSocketAddress(Integer.parseInt(dotenv.get("HTTP_SERVER_PORT"))), Integer.parseInt(dotenv.get("HTTP_SERVER_BACKLOG")));
+            HttpServer server = HttpServer.create(new InetSocketAddress(dotenv.get("HTTP_SERVER_HOST"), Integer.parseInt(dotenv.get("HTTP_SERVER_PORT"))), Integer.parseInt(dotenv.get("HTTP_SERVER_BACKLOG")));
 
             // Create a context for the endpoints
-            server.createContext("/login", new LoginHandler());
+            server.createContext("/login", new LoginHandler(connection));
             server.createContext("/signup", new SignUpHandler(connection));
-            server.createContext("/changepassword", new ChangePasswordHandler());
-            server.createContext("/JWTauth", new JWTAuthHandler()); // cannot be accessed directly by client. called by gateway for jwt auth
+            server.createContext("/changepassword", new ChangePasswordHandler(connection));
+            server.createContext("/validate", new JWTAuthHandler(connection)); // cannot be accessed directly by client. called by gateway for jwt auth
 
             // New pausable thread pool executor
             PausableThreadPoolExecutor executor = new PausableThreadPoolExecutor(Integer.parseInt(dotenv.get("THREAD_POOL_CORE_SIZE")), Integer.parseInt(dotenv.get("THREAD_POOL_MAX_SIZE")), Integer.parseInt(dotenv.get("THREAD_POOL_KEEP_ALIVE")), TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
