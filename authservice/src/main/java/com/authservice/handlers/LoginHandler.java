@@ -24,7 +24,7 @@ public class LoginHandler implements HttpHandler {
 
     private Connection connection;
     //Dotenv dotenv = Dotenv.configure().load();
-    private final String jwtSecret = System.getenv("JWT_SECRET");
+    private final String jwtSecret = System.getenv("AUTH_JWT_SECRET");
 
     public LoginHandler(Connection connection) {
         this.connection = connection;

@@ -26,7 +26,7 @@ public class JWTAuthHandler implements HttpHandler {
 
         // Load the environment variables
         //Dotenv dotenv = Dotenv.configure().load();
-        this.jwtSecret = System.getenv("JWT_SECRET");
+        this.jwtSecret = System.getenv("AUTH_JWT_SECRET");
     }
 
     @Override

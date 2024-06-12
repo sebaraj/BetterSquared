@@ -7,7 +7,7 @@ spec:
     app: auth
   type: ClusterIP
   ports:
-    - name: server
+    - name: auth
       port: 5000
       targetPort: 5000
       protocol: TCP

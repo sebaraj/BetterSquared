@@ -1,4 +1,4 @@
-package com.authservice.server;
+package com.gatewayservice.server;
 
 import com.sun.net.httpserver.HttpServer;
 //import io.github.cdimascio.dotenv.Dotenv;
@@ -12,11 +12,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.Scanner;
 import java.lang.System;
-import org.postgresql.Driver;
+//import org.postgresql.Driver;
 
 public class Server {
-
-    private static Connection connection;
 
     static class StopServerException extends Exception {
         public StopServerException(String message) {
@@ -27,27 +25,24 @@ public class Server {
     public static void main(String[] args) {
         try {
             // Load the .env file
-            //Dotenv dotenv = Dotenv.load();
-            // connect to DB
-            connectToDatabase(); // dotenv
-
             // Create an HttpServer instance, listening on port HTTP_SERVER_PORT with backlog HTTP_SERVER_BACKLOG
-            HttpServer server = HttpServer.create(new InetSocketAddress(System.getenv("AUTH_HTTP_SERVER_HOST"), Integer.parseInt(System.getenv("AUTH_HTTP_SERVER_PORT"))), Integer.parseInt(System.getenv("AUTH_HTTP_SERVER_BACKLOG")));
-
+            System.out.println("GATEWAY HTTP Server started.");
+            HttpServer server = HttpServer.create(new InetSocketAddress(System.getenv("GATEWAY_HTTP_SERVER_HOST"), Integer.parseInt(System.getenv("GATEWAY_HTTP_SERVER_PORT"))), Integer.parseInt(System.getenv("GATEWAY_HTTP_SERVER_BACKLOG")));
+            System.out.println("GATEWAY HTTP Server started.");
             // Create a context for the endpoints
-            server.createContext("/login", new LoginHandler(connection));
-            server.createContext("/signup", new SignUpHandler(connection));
-            server.createContext("/changepassword", new ChangePasswordHandler(connection));
-            server.createContext("/validate", new JWTAuthHandler(connection)); // cannot be accessed directly by client. called by gateway for jwt auth
+            server.createContext("/login", new LoginHandler()); // connection
+            //server.createContext("/signup", new SignUpHandler());
+            //server.createContext("/changepassword", new ChangePasswordHandler());
+            // server.createContext("/validate", new JWTAuthHandler(connection)); // cannot be accessed directly by client. called by gateway for jwt auth
 
             // New pausable thread pool executor
-            PausableThreadPoolExecutor executor = new PausableThreadPoolExecutor(Integer.parseInt(System.getenv("AUTH_THREAD_POOL_CORE_SIZE")), Integer.parseInt(System.getenv("AUTH_THREAD_POOL_MAX_SIZE")), Integer.parseInt(System.getenv("AUTH_THREAD_POOL_KEEP_ALIVE")), TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
+            PausableThreadPoolExecutor executor = new PausableThreadPoolExecutor(Integer.parseInt(System.getenv("GATEWAY_THREAD_POOL_CORE_SIZE")), Integer.parseInt(System.getenv("GATEWAY_THREAD_POOL_MAX_SIZE")), Integer.parseInt(System.getenv("GATEWAY_THREAD_POOL_KEEP_ALIVE")), TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
             int startedThreads = executor.prestartAllCoreThreads();
-            System.out.println("Current # of active threads in pool for auth service: " + startedThreads);
+            System.out.println("Current # of active threads in pool for gateway service: " + startedThreads);
             // Start the server
             server.setExecutor(executor);
             server.start();
-            System.out.println("Server started on port "+System.getenv("AUTH_HTTP_SERVER_PORT"));
+            System.out.println("Server started on port "+System.getenv("GATEWAY_HTTP_SERVER_PORT"));
 
             // use `kubectl exec -it <pod-name> -c <container-name> -- /bin/sh` when running k8s or use k9s
             Scanner scanner = new Scanner(System.in);
@@ -70,6 +65,7 @@ public class Server {
                         }
                     }
 
+
                 } catch (StopServerException e) {
                     System.out.println("Shutting down server...");
                     executor.shutdown();
@@ -79,20 +75,9 @@ public class Server {
                 }
             }
 
-        } catch (SQLException | IOException e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    private static void connectToDatabase() throws SQLException {
-//        Class.forName("org.postgresql.Driver");
-        System.out.println("Connecting to DB...");
-        String url = "jdbc:postgresql://"+ System.getenv("AUTH_DB_HOST") +":" + System.getenv("AUTH_DB_PORT") + "/" + System.getenv("AUTH_DB_NAME");
-        String user = System.getenv("AUTH_DB_USER");
-        String password = System.getenv("AUTH_DB_PASS");
-
-        connection = DriverManager.getConnection(url, user, password);
-        System.out.println("Connected to the PostgreSQL server successfully.");
     }
 
 
