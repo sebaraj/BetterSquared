@@ -1,7 +1,7 @@
 package com.authservice.server;
 
 import com.sun.net.httpserver.HttpServer;
-import io.github.cdimascio.dotenv.Dotenv;
+//import io.github.cdimascio.dotenv.Dotenv;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -11,6 +11,8 @@ import java.sql.SQLException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.Scanner;
+import java.lang.System;
+import org.postgresql.Driver;
 
 public class Server {
 
@@ -19,12 +21,12 @@ public class Server {
     public static void main(String[] args) {
         try {
             // Load the .env file
-            Dotenv dotenv = Dotenv.load();
+            //Dotenv dotenv = Dotenv.load();
             // connect to DB
-            connectToDatabase(dotenv);
+            connectToDatabase(); // dotenv
 
             // Create an HttpServer instance, listening on port HTTP_SERVER_PORT with backlog HTTP_SERVER_BACKLOG
-            HttpServer server = HttpServer.create(new InetSocketAddress(dotenv.get("HTTP_SERVER_HOST"), Integer.parseInt(dotenv.get("HTTP_SERVER_PORT"))), Integer.parseInt(dotenv.get("HTTP_SERVER_BACKLOG")));
+            HttpServer server = HttpServer.create(new InetSocketAddress(System.getenv("HTTP_SERVER_HOST"), Integer.parseInt(System.getenv("HTTP_SERVER_PORT"))), Integer.parseInt(System.getenv("HTTP_SERVER_BACKLOG")));
 
             // Create a context for the endpoints
             server.createContext("/login", new LoginHandler(connection));
@@ -33,7 +35,7 @@ public class Server {
             server.createContext("/validate", new JWTAuthHandler(connection)); // cannot be accessed directly by client. called by gateway for jwt auth
 
             // New pausable thread pool executor
-            PausableThreadPoolExecutor executor = new PausableThreadPoolExecutor(Integer.parseInt(dotenv.get("THREAD_POOL_CORE_SIZE")), Integer.parseInt(dotenv.get("THREAD_POOL_MAX_SIZE")), Integer.parseInt(dotenv.get("THREAD_POOL_KEEP_ALIVE")), TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
+            PausableThreadPoolExecutor executor = new PausableThreadPoolExecutor(Integer.parseInt(System.getenv("THREAD_POOL_CORE_SIZE")), Integer.parseInt(System.getenv("THREAD_POOL_MAX_SIZE")), Integer.parseInt(System.getenv("THREAD_POOL_KEEP_ALIVE")), TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
             int startedThreads = executor.prestartAllCoreThreads();
             System.out.println("Current # of active threads in pool for auth service: " + startedThreads);
             // Start the server
@@ -41,7 +43,7 @@ public class Server {
             server.start();
             System.out.println("Server started on port 8080");
 
-            // use `kubectl exec -it <pod-name> -c <container-name> -- /bin/sh` when running k8s
+            // use `kubectl exec -it <pod-name> -c <container-name> -- /bin/sh` when running k8s or use k9s
             Scanner scanner = new Scanner(System.in);
             while (true) {
                 try {
@@ -72,10 +74,12 @@ public class Server {
         }
     }
 
-    private static void connectToDatabase(Dotenv dotenv) throws SQLException {
-        String url = "jdbc:postgresql://"+ dotenv.get("DB_HOST") +":" + dotenv.get("DB_PORT") + "/" + dotenv.get("DB_NAME");
-        String user = dotenv.get("DB_USER");
-        String password = dotenv.get("DB_PASS");
+    private static void connectToDatabase() throws SQLException {
+//        Class.forName("org.postgresql.Driver");
+        System.out.println("Connecting to DB...");
+        String url = "jdbc:postgresql://"+ System.getenv("DB_HOST") +":" + System.getenv("DB_PORT") + "/" + System.getenv("DB_NAME");
+        String user = System.getenv("DB_USER");
+        String password = System.getenv("DB_PASS");
 
         connection = DriverManager.getConnection(url, user, password);
         System.out.println("Connected to the PostgreSQL server successfully.");

@@ -17,14 +17,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
-import io.github.cdimascio.dotenv.Dotenv;
+import java.lang.System;
+//import io.github.cdimascio.dotenv.Dotenv;
 
 public class LoginHandler implements HttpHandler {
 
     private Connection connection;
-    Dotenv dotenv = Dotenv.configure().load();
-    private final String jwtSecret = dotenv.get("JWT_SECRET");
+    //Dotenv dotenv = Dotenv.configure().load();
+    private final String jwtSecret = System.getenv("JWT_SECRET");
 
     public LoginHandler(Connection connection) {
         this.connection = connection;

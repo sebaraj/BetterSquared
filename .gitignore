@@ -1,2 +1,4 @@
 .class
 authservice/.env
+target/
+

@@ -7,13 +7,14 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.auth0.jwt.interfaces.JWTVerifier;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
-import io.github.cdimascio.dotenv.Dotenv;
+//import io.github.cdimascio.dotenv.Dotenv;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.util.List;
 import java.util.Map;
+import java.lang.System;
 
 public class JWTAuthHandler implements HttpHandler {
 
@@ -24,8 +25,8 @@ public class JWTAuthHandler implements HttpHandler {
         this.connection = connection;
 
         // Load the environment variables
-        Dotenv dotenv = Dotenv.configure().load();
-        this.jwtSecret = dotenv.get("JWT_SECRET");
+        //Dotenv dotenv = Dotenv.configure().load();
+        this.jwtSecret = System.getenv("JWT_SECRET");
     }
 
     @Override
