@@ -8,6 +8,7 @@ import java.util.concurrent.BlockingQueue;
 
 public class PausableThreadPoolExecutor extends ThreadPoolExecutor {
     private boolean isPaused;
+    // Monitor (lock + cv) to control all threads in pool
     private ReentrantLock pauseLock = new ReentrantLock();
     private Condition unpaused = pauseLock.newCondition();
 

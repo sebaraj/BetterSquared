@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.lang.System;
 
 public class SignUpHandler implements HttpHandler {
 
@@ -21,7 +22,7 @@ public class SignUpHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-        if ("POST".equals(exchange.getRequestMethod())) {
+        if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
             // Read the request body
             InputStream inputStream = exchange.getRequestBody();
             String requestBody = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
@@ -60,6 +61,7 @@ public class SignUpHandler implements HttpHandler {
     }
 
     private void insertUserIntoDatabase(String username, String email, String password) throws SQLException {
+        // hash + salt password (create a function used across package)
         String insertSQL = "INSERT INTO users (username, email, password) VALUES (?, ?, ?)";
         try (PreparedStatement preparedStatement = connection.prepareStatement(insertSQL)) {
             preparedStatement.setString(1, username);

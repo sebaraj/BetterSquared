@@ -2,7 +2,7 @@ languages: Java
 
 db: postgres@16
 
-tech/protocols: nginx (ingress), rabbitmq, gRPC, HTTP(S), SMTP, JWTs, 
+tech/protocols: nginx (ingress), rabbitmq, gRPC, Protobufs, HTTP(S), SMTP, JWTs, 
 
 build/deployment tools: Maven (manage build process/dependencies), Docker (containerizing), k8s, minikube, k9s
 
@@ -14,9 +14,8 @@ build/deployment tools: Maven (manage build process/dependencies), Docker (conta
 
 
 ### Auth Service:
-- Create .env file in ./authservice with appropriate credentials for:
-  - `DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT, HTTP_SERVER_PORT, HTTP_SERVER_BACKLOG, THREAD_POOL_CORE_SIZE, THREAD_POOL_MAX_SIZE, THREAD_POOL_KEEP_ALIVE`
-  - 127.0.0.1 is localhost and 5432 is postgres default port
+- Define env variables for the following in appropriate yaml files in ./authservice/manifests:
+  - `DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT, HTTP_SERVER_HOST, HTTP_SERVER_PORT, HTTP_SERVER_BACKLOG, THREAD_POOL_CORE_SIZE, THREAD_POOL_MAX_SIZE, THREAD_POOL_KEEP_ALIVE, JWT_SECRET`
 
 
 ### Email Service:
@@ -24,7 +23,7 @@ build/deployment tools: Maven (manage build process/dependencies), Docker (conta
 
 ### PostgreSQL
 - Install PostgreSQL
-    - `brew install postgresql@15`
+    - `brew install postgresql@16`
     - `initdb /usr/local/var/postgres/`
 - Start PostgreSQL
     - `brew services start postgresql` (for postgres to run as background service)
