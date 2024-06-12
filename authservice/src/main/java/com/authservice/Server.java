@@ -18,6 +18,12 @@ public class Server {
 
     private static Connection connection;
 
+    static class StopServerException extends Exception {
+        public StopServerException(String message) {
+            super(message);
+        }
+    }
+
     public static void main(String[] args) {
         try {
             // Load the .env file
@@ -41,17 +47,18 @@ public class Server {
             // Start the server
             server.setExecutor(executor);
             server.start();
-            System.out.println("Server started on port 8080");
+            System.out.println("Server started on port "+System.getenv("HTTP_SERVER_PORT"));
 
             // use `kubectl exec -it <pod-name> -c <container-name> -- /bin/sh` when running k8s or use k9s
             Scanner scanner = new Scanner(System.in);
+
             while (true) {
                 try {
                     System.out.print("Enter command: ");
                     String input = scanner.nextLine();
 
                     if ("auth-server-stop".equalsIgnoreCase(input)) {
-                        throw new Exception("Stopping the server.");
+                        throw new StopServerException("Stopping the server.");
                     } else if ("auth-thread-pool-pause".equalsIgnoreCase(input)) {
                         executor.pause();
                         System.out.println("Thread pool paused.");
@@ -60,7 +67,7 @@ public class Server {
                         System.out.println("Thread pool resumed.");
                     }
 
-                } catch (Exception e) {
+                } catch (StopServerException e) {
                     System.out.println("Shutting down server...");
                     executor.shutdown();
                     server.stop(0); // delay of 0

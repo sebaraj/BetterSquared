@@ -24,6 +24,7 @@ spec:
           image: bryanwsebaraj/auth
           ports:
             - containerPort: 5000
+            - containerPort: 5432
           envFrom:
             - configMapRef:
                 name: auth-configmap
