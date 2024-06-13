@@ -5,9 +5,8 @@ metadata:
   namespace: default
   labels:
     app: gateway
-
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: gateway
@@ -23,8 +22,6 @@ spec:
       containers:
         - name: gateway
           image: bryanwsebaraj/gateway
-          ports:
-            - containerPort: 8080
           envFrom:
             - configMapRef:
                 name: gateway-configmap

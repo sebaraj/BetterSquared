@@ -44,11 +44,15 @@ public class LoginHandler implements HttpHandler {
 
             try {
                 if (authenticateUser(username, password)) {
+                    System.out.println("Creating JWT");
                     String token = createJWT(username);
+                    System.out.println(token);
                     String response = "{\"token\":\"" + token + "\"}";
+                    System.out.println(response);
                     exchange.sendResponseHeaders(200, response.getBytes().length);
                     OutputStream outputStream = exchange.getResponseBody();
                     outputStream.write(response.getBytes());
+                    System.out.println("output stream closing");
                     outputStream.close();
                 } else {
                     exchange.sendResponseHeaders(401, -1); // 401 Unauthorized
@@ -56,6 +60,7 @@ public class LoginHandler implements HttpHandler {
             } catch (SQLException e) {
                 e.printStackTrace();
                 exchange.sendResponseHeaders(500, -1); // 500 Internal Server Error
+
             }
         } else {
             exchange.sendResponseHeaders(405, -1); // 405 Method Not Allowed
@@ -64,6 +69,7 @@ public class LoginHandler implements HttpHandler {
     }
 
     private boolean authenticateUser(String username, String password) throws SQLException {
+        System.out.println("authenticating user");
         String query = "SELECT password FROM users WHERE username = ?";
         try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
             preparedStatement.setString(1, username);
@@ -78,13 +84,16 @@ public class LoginHandler implements HttpHandler {
 
     private String createJWT(String username) {
         try {
+            System.out.println("Creating JWT");
             return JWT.create()
                     .withIssuer("auth0")
                     .withClaim("username", username)
                     .withExpiresAt(new Date(System.currentTimeMillis() + 24 * 3600 * 1000)) // 1 day expiration
                     .sign(Algorithm.HMAC256(jwtSecret));
         } catch (JWTCreationException exception) {
+            System.out.println("Error creating JWT");
             throw new RuntimeException("Error creating JWT", exception);
+
         }
     }
 }

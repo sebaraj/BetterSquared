@@ -50,34 +50,34 @@ public class Server {
             System.out.println("Server started on port "+System.getenv("AUTH_HTTP_SERVER_PORT"));
 
             // use `kubectl exec -it <pod-name> -c <container-name> -- /bin/sh` when running k8s or use k9s
-            Scanner scanner = new Scanner(System.in);
-
-            while (true) {
-                try {
-                    System.out.print("Enter command: ");
-                    if (scanner.hasNextLine()) {
-                        String input = scanner.nextLine();
-                        System.out.println("You entered: " + input);
-
-                        if ("gateway-server-stop".equalsIgnoreCase(input)) {
-                            throw new StopServerException("Stopping the server.");
-                        } else if ("gateway-thread-pool-pause".equalsIgnoreCase(input)) {
-                            executor.pause();
-                            System.out.println("Thread pool paused.");
-                        } else if ("gateway-thread-pool-resume".equalsIgnoreCase(input)) {
-                            executor.resume();
-                            System.out.println("Thread pool resumed.");
-                        }
-                    }
-
-                } catch (StopServerException e) {
-                    System.out.println("Shutting down server...");
-                    executor.shutdown();
-                    server.stop(0); // delay of 0
-                    System.out.println("Server shut down.");
-                    break;
-                }
-            }
+//            Scanner scanner = new Scanner(System.in);
+//
+//            while (true) {
+//                try {
+//                    System.out.print("Enter command: ");
+//                    if (scanner.hasNextLine()) {
+//                        String input = scanner.nextLine();
+//                        System.out.println("You entered: " + input);
+//
+//                        if ("gateway-server-stop".equalsIgnoreCase(input)) {
+//                            throw new StopServerException("Stopping the server.");
+//                        } else if ("gateway-thread-pool-pause".equalsIgnoreCase(input)) {
+//                            executor.pause();
+//                            System.out.println("Thread pool paused.");
+//                        } else if ("gateway-thread-pool-resume".equalsIgnoreCase(input)) {
+//                            executor.resume();
+//                            System.out.println("Thread pool resumed.");
+//                        }
+//                    }
+//
+//                } catch (StopServerException e) {
+//                    System.out.println("Shutting down server...");
+//                    executor.shutdown();
+//                    server.stop(0); // delay of 0
+//                    System.out.println("Server shut down.");
+//                    break;
+//                }
+//            }
 
         } catch (SQLException | IOException e) {
             e.printStackTrace();
@@ -89,7 +89,7 @@ public class Server {
         System.out.println("Connecting to DB...");
         String url = "jdbc:postgresql://"+ System.getenv("AUTH_DB_HOST") +":" + System.getenv("AUTH_DB_PORT") + "/" + System.getenv("AUTH_DB_NAME");
         String user = System.getenv("AUTH_DB_USER");
-        String password = System.getenv("AUTH_DB_PASS");
+        String password = System.getenv("AUTH_DB_PASSWORD");
 
         connection = DriverManager.getConnection(url, user, password);
         System.out.println("Connected to the PostgreSQL server successfully.");

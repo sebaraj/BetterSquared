@@ -29,7 +29,8 @@ public class LoginHandler implements HttpHandler {
     //private final String jwtSecret = System.getenv("JWT_SECRET");
     private final String authServiceUrl = System.getenv("AUTH_SERVICE_HOST") + ":" + System.getenv("AUTH_SERVICE_PORT");
 
-    public LoginHandler() {  }
+    public LoginHandler() {
+    }
     //}  this.connection = connection;
 
     @Override
@@ -37,12 +38,15 @@ public class LoginHandler implements HttpHandler {
         if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
             try {
                 System.out.println("routing login request from gateway to auth");
+                System.out.println("Routing to " + authServiceUrl);
+
                 // Read request body
                 InputStream is = exchange.getRequestBody();
                 String requestBody = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+                System.out.println("Received request: " + requestBody);
 
                 // Forward request to the authentication service
-                URL url = new URL(authServiceUrl + "/login");
+                URL url = new URL("http://" + authServiceUrl + "/login");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setDoOutput(true);
@@ -55,6 +59,7 @@ public class LoginHandler implements HttpHandler {
 
                 // Get response from the authentication service
                 int responseCode = conn.getResponseCode();
+                System.out.println("Response Code: " + responseCode);
                 InputStream authResponseStream = responseCode == 200 ? conn.getInputStream() : conn.getErrorStream();
                 String authResponse = new String(authResponseStream.readAllBytes(), StandardCharsets.UTF_8);
 
@@ -81,29 +86,5 @@ public class LoginHandler implements HttpHandler {
         }
         exchange.close();
     }
-
-//    private boolean authenticateUser(String username, String password) throws SQLException {
-//        String query = "SELECT password FROM users WHERE username = ?";
-//        try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
-//            preparedStatement.setString(1, username);
-//            ResultSet resultSet = preparedStatement.executeQuery();
-//            if (resultSet.next()) {
-//                String storedPassword = resultSet.getString("password");
-//                return storedPassword.equals(password); // need to hash and salt passwords
-//            }
-//        }
-//        return false;
-//    }
-//
-//    private String createJWT(String username) {
-//        try {
-//            return JWT.create()
-//                    .withIssuer("auth0")
-//                    .withClaim("username", username)
-//                    .withExpiresAt(new Date(System.currentTimeMillis() + 24 * 3600 * 1000)) // 1 day expiration
-//                    .sign(Algorithm.HMAC256(jwtSecret));
-//        } catch (JWTCreationException exception) {
-//            throw new RuntimeException("Error creating JWT", exception);
-//        }
-//    }
 }
+
