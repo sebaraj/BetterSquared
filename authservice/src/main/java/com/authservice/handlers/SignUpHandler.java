@@ -3,6 +3,7 @@ package com.authservice.server;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
 import org.json.JSONObject;
+import org.mindrot.jbcrypt.BCrypt;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -35,8 +36,11 @@ public class SignUpHandler implements HttpHandler {
                 String email = jsonObject.getString("email");
                 String password = jsonObject.getString("password");
 
+                // Hash and salt the password
+                String hashedPassword = hashPassword(password);
+
                 // Insert the sign-up information into the database
-                insertUserIntoDatabase(username, email, password);
+                insertUserIntoDatabase(username, email, hashedPassword);
 
                 // Send a response
                 String response = "User signed up successfully";
@@ -60,8 +64,11 @@ public class SignUpHandler implements HttpHandler {
         }
     }
 
+    private String hashPassword(String password) {
+        return BCrypt.hashpw(password, BCrypt.gensalt());
+    }
+
     private void insertUserIntoDatabase(String username, String email, String password) throws SQLException {
-        // hash + salt password (create a function used across package)
         String insertSQL = "INSERT INTO users (username, email, password) VALUES (?, ?, ?)";
         try (PreparedStatement preparedStatement = connection.prepareStatement(insertSQL)) {
             preparedStatement.setString(1, username);

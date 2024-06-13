@@ -34,4 +34,7 @@ build/deployment tools: Maven (manage build process/dependencies), Docker (conta
     - `\q`
     - `psql -h localhost -d authdb -U authdbuser -p 5432`
     - `CREATE TABLE users (id SERIAL PRIMARY KEY, username VARCHAR(50) NOT NULL, email VARCHAR(100) NOT NULL, password VARCHAR(100) NOT NULL);`
-    - 
+
+
+### Starting Backend
+- `./start-backend.sh` in this project root directory, with sudo permissions

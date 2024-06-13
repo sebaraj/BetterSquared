@@ -61,6 +61,7 @@
           <target>1.8</target>
           <includes>
             <!-- other java files here -->
+            <include>**/handlers/SignUpHandler.java</include>
             <include>**/handlers/LoginHandler.java</include>
             <include>**/PausableThreadPoolExecutor.java</include>
             <include>**/Server.java</include>

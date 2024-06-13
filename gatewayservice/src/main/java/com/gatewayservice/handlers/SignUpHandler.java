@@ -22,14 +22,14 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 //import io.github.cdimascio.dotenv.Dotenv;
 
-public class LoginHandler implements HttpHandler {
+public class SignUpHandler implements HttpHandler {
 
     //private Connection connection;
     //Dotenv dotenv = Dotenv.configure().load();
     //private final String jwtSecret = System.getenv("JWT_SECRET");
     private final String authServiceUrl = System.getenv("AUTH_SERVICE_HOST") + ":" + System.getenv("AUTH_SERVICE_PORT");
 
-    public LoginHandler() {
+    public SignUpHandler() {
     }
     //}  this.connection = connection;
 
@@ -37,7 +37,7 @@ public class LoginHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
         if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
             try {
-                System.out.println("routing login request from gateway to auth");
+                System.out.println("routing signup request from gateway to auth");
                 System.out.println("Routing to " + authServiceUrl);
 
                 // Read request body
@@ -46,7 +46,7 @@ public class LoginHandler implements HttpHandler {
                 System.out.println("Received request: " + requestBody);
 
                 // Forward request to the authentication service
-                URL url = new URL("http://" + authServiceUrl + "/login");
+                URL url = new URL("http://" + authServiceUrl + "/signup");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setDoOutput(true);
@@ -66,14 +66,14 @@ public class LoginHandler implements HttpHandler {
                 // Set response headers and body
                 exchange.getResponseHeaders().set("Content-Type", "application/json; utf-8");
                 exchange.sendResponseHeaders(responseCode, authResponse.getBytes(StandardCharsets.UTF_8).length);
-                System.out.println("routing login response from auth to gateway");
+                System.out.println("routing signup response from auth to gateway");
                 try (OutputStream os = exchange.getResponseBody()) {
                     os.write(authResponse.getBytes(StandardCharsets.UTF_8));
                 }
 
             } catch (Exception e) {
                 e.printStackTrace();
-                String errorResponse = "{\"error\": \"Incorrect Password\"}";
+                String errorResponse = "{\"error\": \"Internal server error\"}";
                 exchange.getResponseHeaders().set("Content-Type", "application/json; utf-8");
                 exchange.sendResponseHeaders(500, errorResponse.getBytes(StandardCharsets.UTF_8).length);
 

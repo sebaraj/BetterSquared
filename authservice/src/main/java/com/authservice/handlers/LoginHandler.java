@@ -7,6 +7,7 @@ import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import org.mindrot.jbcrypt.BCrypt;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -76,7 +77,7 @@ public class LoginHandler implements HttpHandler {
             ResultSet resultSet = preparedStatement.executeQuery();
             if (resultSet.next()) {
                 String storedPassword = resultSet.getString("password");
-                return storedPassword.equals(password); // need to hash and salt passwords
+                return BCrypt.checkpw(password, storedPassword); // storedPassword.equals(password); // need to hash and salt passwords
             }
         }
         return false;

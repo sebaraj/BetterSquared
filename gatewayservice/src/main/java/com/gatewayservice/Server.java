@@ -31,7 +31,7 @@ public class Server {
             System.out.println("GATEWAY HTTP Server started.");
             // Create a context for the endpoints
             server.createContext("/login", new LoginHandler()); // connection
-            //server.createContext("/signup", new SignUpHandler());
+            server.createContext("/signup", new SignUpHandler());
             //server.createContext("/changepassword", new ChangePasswordHandler());
             // server.createContext("/validate", new JWTAuthHandler(connection)); // cannot be accessed directly by client. called by gateway for jwt auth
 
