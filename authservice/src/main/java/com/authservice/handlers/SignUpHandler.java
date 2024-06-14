@@ -3,6 +3,7 @@ package com.authservice.server;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
 import org.json.JSONObject;
+import org.mindrot.jbcrypt.BCrypt;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -11,6 +12,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.lang.System;
+import java.sql.ResultSet;
 
 public class SignUpHandler implements HttpHandler {
 
@@ -34,10 +36,13 @@ public class SignUpHandler implements HttpHandler {
                 String username = jsonObject.getString("username");
                 String email = jsonObject.getString("email");
                 String password = jsonObject.getString("password");
+                int roleInt = getRoleInt((String) jsonObject.optString("role", "Standard"));
+                // Hash and salt the password
+                String hashedPassword = hashPassword(password);
 
                 // Insert the sign-up information into the database
-                insertUserIntoDatabase(username, email, password);
-
+                insertUserIntoDatabase(username, email, hashedPassword, roleInt);
+                System.out.println("User: " + username + " created and inserted into database.");
                 // Send a response
                 String response = "User signed up successfully";
                 exchange.sendResponseHeaders(200, response.getBytes().length);
@@ -46,6 +51,8 @@ public class SignUpHandler implements HttpHandler {
                 outputStream.close();
 
                 // future: add message to RabbitMQ so gmail SMTP microservice can send email notification of new account to email provided
+
+                //System.out.println("Added message to RabbitMQ email queue");
             } catch (Exception e) {
                 e.printStackTrace();
                 String response = "Error processing sign-up request";
@@ -60,14 +67,33 @@ public class SignUpHandler implements HttpHandler {
         }
     }
 
-    private void insertUserIntoDatabase(String username, String email, String password) throws SQLException {
-        // hash + salt password (create a function used across package)
-        String insertSQL = "INSERT INTO users (username, email, password) VALUES (?, ?, ?)";
+    private int getRoleInt(String role) throws SQLException {
+        String getSQL = "SELECT id FROM roles WHERE role_name = ?";
+        try (PreparedStatement preparedStatement = connection.prepareStatement(getSQL)) {
+            preparedStatement.setString(1, role);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getInt("id");
+                } else {
+                    throw new SQLException();
+                }
+            }
+        }
+    }
+
+    private String hashPassword(String password) {
+        return BCrypt.hashpw(password, BCrypt.gensalt());
+    }
+
+    private void insertUserIntoDatabase(String username, String email, String password, int role) throws SQLException {
+        String insertSQL = "INSERT INTO users (username, email, password, role_id) VALUES (?, ?, ?, ?)";
         try (PreparedStatement preparedStatement = connection.prepareStatement(insertSQL)) {
             preparedStatement.setString(1, username);
             preparedStatement.setString(2, email);
             preparedStatement.setString(3, password);
+            preparedStatement.setInt(4, role);
             preparedStatement.executeUpdate();
         }
     }
+
 }

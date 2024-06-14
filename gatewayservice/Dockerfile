@@ -34,7 +34,7 @@ COPY --from=build /app/target/Server-1.0-SNAPSHOT-jar-with-dependencies.jar app.
 RUN ls -l /app
 
 # Expose the port the application runs on
-EXPOSE 5000
+EXPOSE 8080
 
 # Set the entry point to run the application
 ENTRYPOINT ["java", "-jar", "app.jar"]
