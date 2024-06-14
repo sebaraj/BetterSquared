@@ -9,17 +9,20 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.lang.System;
 import java.sql.ResultSet;
+import com.rabbitmq.client.Channel;
 
 public class ForgotPasswordHandler implements HttpHandler {
-    private Connection connection;
 
-    public ForgotPasswordHandler(Connection connection) {
-        this.connection = connection;
+    private java.sql.Connection dbConnection;
+    private com.rabbitmq.client.Channel rabbitMQChannel;
+
+    public ForgotPasswordHandler(java.sql.Connection dbConnection, com.rabbitmq.client.Channel rabbitMQChannel) {
+        this.dbConnection = dbConnection;
+        this.rabbitMQChannel = rabbitMQChannel;
     }
 
     @Override
@@ -52,9 +55,21 @@ public class ForgotPasswordHandler implements HttpHandler {
                 outputStream.write(response.getBytes());
                 outputStream.close();
 
-                // future: add message to RabbitMQ so gmail SMTP microservice can send email notification of new password to email provided
                 System.out.println("Password reset successfully:" + unhashedPassword);
-                //System.out.println("Added message to RabbitMQ email queue");
+                // add message to RabbitMQ so gmail SMTP microservice can send email notification of new password to email provided
+                String queueName = "reset_password_email_queue";
+                rabbitMQChannel.queueDeclare(queueName, true, false, false, null);
+
+                // Create the JSON message to send to RabbitMQ
+                JSONObject messageJson = new JSONObject();
+                messageJson.put("email", email);
+                messageJson.put("password", unhashedPassword);
+                String message = messageJson.toString();
+
+                // Publish the message to the queue
+                rabbitMQChannel.basicPublish("", queueName, MessageProperties.PERSISTENT_TEXT_PLAIN, message.getBytes(StandardCharsets.UTF_8));
+
+                System.out.println("Added message to RabbitMQ email queue");
             } catch (Exception e) {
                 e.printStackTrace();
                 String response = "Error processing password change request";
@@ -74,7 +89,7 @@ public class ForgotPasswordHandler implements HttpHandler {
 
     private void updatePasswordInDatabse(String username, String pass) throws SQLException {
         String updateSQL = "UPDATE users SET password = ? WHERE username = ?";
-        try (PreparedStatement preparedStatement = connection.prepareStatement(updateSQL)) {
+        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(updateSQL)) {
             preparedStatement.setString(1, pass);
             preparedStatement.setString(2, username);
             preparedStatement.executeUpdate();

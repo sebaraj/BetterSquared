@@ -1,8 +1,9 @@
 package com.authservice.server;
 
 import com.sun.net.httpserver.HttpServer;
-//import io.github.cdimascio.dotenv.Dotenv;
-
+import com.rabbitmq.client.ConnectionFactory;
+//import com.rabbitmq.client.Connection;
+//import com.rabbitmq.client.Channel;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.sql.Connection;
@@ -16,13 +17,15 @@ import org.postgresql.Driver;
 
 public class Server {
 
-    private static Connection connection;
+    private static java.sql.Connection dbConnection;
+    private static com.rabbitmq.client.Connection rabbitMQConnection;
+    private static com.rabbitmq.client.Channel rabbitMQChannel;
 
-    static class StopServerException extends Exception {
-        public StopServerException(String message) {
-            super(message);
-        }
-    }
+//    static class StopServerException extends Exception {
+//        public StopServerException(String message) {
+//            super(message);
+//        }
+//    }
 
     public static void main(String[] args) {
         try {
@@ -31,14 +34,16 @@ public class Server {
             // connect to DB
             connectToDatabase(); // dotenv
 
+            connectToRabbitMQ();
+
             // Create an HttpServer instance, listening on port HTTP_SERVER_PORT with backlog HTTP_SERVER_BACKLOG
             HttpServer server = HttpServer.create(new InetSocketAddress(System.getenv("AUTH_HTTP_SERVER_HOST"), Integer.parseInt(System.getenv("AUTH_HTTP_SERVER_PORT"))), Integer.parseInt(System.getenv("AUTH_HTTP_SERVER_BACKLOG")));
 
             // Create a context for the endpoints
-            server.createContext("/login", new LoginHandler(connection));
-            server.createContext("/signup", new SignUpHandler(connection));
-            server.createContext("/forgotpassword", new ForgotPasswordHandler(connection));
-            server.createContext("/validate", new JWTAuthHandler(connection)); // cannot be accessed directly by client. called by gateway for jwt auth
+            server.createContext("/login", new LoginHandler(dbConnection));
+            server.createContext("/signup", new SignUpHandler(dbConnection, rabbitMQChannel));
+            server.createContext("/forgotpassword", new ForgotPasswordHandler(dbConnection, rabbitMQChannel));
+            server.createContext("/validate", new JWTAuthHandler(dbConnection)); // cannot be accessed directly by client. called by gateway for jwt auth
 
             // New pausable thread pool executor
             PausableThreadPoolExecutor executor = new PausableThreadPoolExecutor(Integer.parseInt(System.getenv("AUTH_THREAD_POOL_CORE_SIZE")), Integer.parseInt(System.getenv("AUTH_THREAD_POOL_MAX_SIZE")), Integer.parseInt(System.getenv("AUTH_THREAD_POOL_KEEP_ALIVE")), TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
@@ -91,9 +96,23 @@ public class Server {
         String user = System.getenv("AUTH_DB_USER");
         String password = System.getenv("AUTH_DB_PASSWORD");
 
-        connection = DriverManager.getConnection(url, user, password);
+        dbConnection = DriverManager.getConnection(url, user, password);
         System.out.println("Connected to the PostgreSQL server successfully.");
     }
 
-
+    private static void connectToRabbitMQ() {
+        System.out.println("Connecting to RabbitMQ...");
+        ConnectionFactory factory = new ConnectionFactory();
+        factory.setHost(System.getenv("RABBITMQ_HOST"));
+        factory.setPort(Integer.parseInt(System.getenv("RABBITMQ_PORT")));
+        //factory.setUsername(System.getenv("RABBITMQ_USER"));
+        //factory.setPassword(System.getenv("RABBITMQ_PASSWORD"));
+        try {
+            rabbitMQConnection = factory.newConnection();
+            rabbitMQChannel = rabbitMQConnection.createChannel();
+            System.out.println("Connected to RabbitMQ successfully.");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }
