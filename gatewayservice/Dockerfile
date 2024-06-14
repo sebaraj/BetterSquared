@@ -19,8 +19,8 @@ RUN mvn clean install -DskipTests
 RUN ls -R /app/target
 
 
-# Use an OpenJDK runtime image to run the application
-FROM openjdk:17-jdk-slim
+# Use an LTS amazon corretto runtime image to run the application
+FROM amazoncorretto:21
 
 # Set the working directory
 WORKDIR /app

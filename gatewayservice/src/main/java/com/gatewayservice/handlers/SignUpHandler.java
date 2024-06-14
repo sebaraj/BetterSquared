@@ -37,15 +37,12 @@ public class SignUpHandler implements HttpHandler {
     public void handle(HttpExchange exchange) throws IOException {
         if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
             try {
-                System.out.println("routing signup request from gateway to auth");
-                System.out.println("Routing to " + authServiceUrl);
-
                 // Read request body
                 InputStream is = exchange.getRequestBody();
                 String requestBody = new String(is.readAllBytes(), StandardCharsets.UTF_8);
-                System.out.println("Received request: " + requestBody);
 
                 // Forward request to the authentication service
+                System.out.println("Routing signup request to " + authServiceUrl);
                 URL url = new URL("http://" + authServiceUrl + "/signup");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
@@ -57,23 +54,23 @@ public class SignUpHandler implements HttpHandler {
                     os.write(input, 0, input.length);
                 }
 
+                System.out.println("Receiving response from auth service.");
                 // Get response from the authentication service
                 int responseCode = conn.getResponseCode();
-                System.out.println("Response Code: " + responseCode);
                 InputStream authResponseStream = responseCode == 200 ? conn.getInputStream() : conn.getErrorStream();
                 String authResponse = new String(authResponseStream.readAllBytes(), StandardCharsets.UTF_8);
 
                 // Set response headers and body
                 exchange.getResponseHeaders().set("Content-Type", "application/json; utf-8");
                 exchange.sendResponseHeaders(responseCode, authResponse.getBytes(StandardCharsets.UTF_8).length);
-                System.out.println("routing signup response from auth to gateway");
+                System.out.println("Routing signup response from auth to gateway");
                 try (OutputStream os = exchange.getResponseBody()) {
                     os.write(authResponse.getBytes(StandardCharsets.UTF_8));
                 }
 
             } catch (Exception e) {
                 e.printStackTrace();
-                String errorResponse = "{\"error\": \"Internal server error\"}";
+                String errorResponse = "{\"error\": \"Sign-up failed\"}";
                 exchange.getResponseHeaders().set("Content-Type", "application/json; utf-8");
                 exchange.sendResponseHeaders(500, errorResponse.getBytes(StandardCharsets.UTF_8).length);
 

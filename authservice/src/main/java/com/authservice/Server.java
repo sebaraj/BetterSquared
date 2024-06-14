@@ -37,7 +37,7 @@ public class Server {
             // Create a context for the endpoints
             server.createContext("/login", new LoginHandler(connection));
             server.createContext("/signup", new SignUpHandler(connection));
-            server.createContext("/changepassword", new ChangePasswordHandler(connection));
+            server.createContext("/forgotpassword", new ForgotPasswordHandler(connection));
             server.createContext("/validate", new JWTAuthHandler(connection)); // cannot be accessed directly by client. called by gateway for jwt auth
 
             // New pausable thread pool executor
@@ -49,7 +49,7 @@ public class Server {
             server.start();
             System.out.println("Server started on port "+System.getenv("AUTH_HTTP_SERVER_PORT"));
 
-            // use `kubectl exec -it <pod-name> -c <container-name> -- /bin/sh` when running k8s or use k9s
+            // artifact from running program outside of docker/k8s. why pause/resume threads/shutdown server when i can just spin up/down containers
 //            Scanner scanner = new Scanner(System.in);
 //
 //            while (true) {

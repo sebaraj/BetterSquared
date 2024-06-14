@@ -22,11 +22,11 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 //import io.github.cdimascio.dotenv.Dotenv;
 
-public class LoginHandler implements HttpHandler {
+public class ForgotPasswordHandler implements HttpHandler {
 
     private final String authServiceUrl = System.getenv("AUTH_SERVICE_HOST") + ":" + System.getenv("AUTH_SERVICE_PORT");
 
-    public LoginHandler() {
+    public ForgotPasswordHandler() {
     }
 
     @Override
@@ -38,10 +38,10 @@ public class LoginHandler implements HttpHandler {
                 String requestBody = new String(is.readAllBytes(), StandardCharsets.UTF_8);
 
                 // Forward request to the authentication service
-                System.out.println("Routing login request to " + authServiceUrl);
-                URL url = new URL("http://" + authServiceUrl + "/login");
+                System.out.println("Routing forgot password request to " + authServiceUrl);
+                URL url = new URL("http://" + authServiceUrl + "/forgotpassword");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
+                conn.setRequestMethod("PUT");
                 conn.setDoOutput(true);
                 conn.setRequestProperty("Content-Type", "application/json; utf-8");
 
@@ -60,14 +60,14 @@ public class LoginHandler implements HttpHandler {
                 // Set response headers and body
                 exchange.getResponseHeaders().set("Content-Type", "application/json; utf-8");
                 exchange.sendResponseHeaders(responseCode, authResponse.getBytes(StandardCharsets.UTF_8).length);
-                System.out.println("Routing login response from auth to gateway");
+                System.out.println("Routing forgot password response from auth to gateway");
                 try (OutputStream os = exchange.getResponseBody()) {
                     os.write(authResponse.getBytes(StandardCharsets.UTF_8));
                 }
 
             } catch (Exception e) {
                 e.printStackTrace();
-                String errorResponse = "{\"error\": \"Log-in failed. Incorrect Password\"}";
+                String errorResponse = "{\"error\": \"Reset password failed.\"}";
                 exchange.getResponseHeaders().set("Content-Type", "application/json; utf-8");
                 exchange.sendResponseHeaders(500, errorResponse.getBytes(StandardCharsets.UTF_8).length);
 

@@ -36,6 +36,7 @@ public class JWTAuthHandler implements HttpHandler {
             List<String> authorizationHeader = headers.get("Authorization");
 
             if (authorizationHeader == null || authorizationHeader.isEmpty()) {
+                System.out.println("Authorization header is empty");
                 exchange.sendResponseHeaders(401, -1); // 401 Unauthorized
                 exchange.close();
                 return;
@@ -51,9 +52,9 @@ public class JWTAuthHandler implements HttpHandler {
                         .withIssuer("auth0")
                         .build();
                 DecodedJWT jwt = verifier.verify(token);
-
+                System.out.println("Validated");
                 // JWT is valid, proceed with handling the request
-                String response = "JWT is valid";
+                String response = "Authenticated";
                 exchange.sendResponseHeaders(200, response.getBytes().length);
                 OutputStream outputStream = exchange.getResponseBody();
                 outputStream.write(response.getBytes());
@@ -68,4 +69,5 @@ public class JWTAuthHandler implements HttpHandler {
         }
         exchange.close();
     }
+
 }

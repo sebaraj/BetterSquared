@@ -69,7 +69,7 @@
             <!-- <include>**/ThreadPerTaskExecutor.java</include> -->
             <include>**/handlers/SignUpHandler.java</include>
             <include>**/handlers/LoginHandler.java</include>
-            <include>**/handlers/ChangePasswordHandler.java</include>
+            <include>**/handlers/ForgotPasswordHandler.java</include>
             <include>**/handlers/JWTAuthHandler.java</include>
             <include>**/PausableThreadPoolExecutor.java</include>
             <include>**/Server.java</include>

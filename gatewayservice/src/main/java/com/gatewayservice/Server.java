@@ -16,11 +16,11 @@ import java.lang.System;
 
 public class Server {
 
-    static class StopServerException extends Exception {
-        public StopServerException(String message) {
-            super(message);
-        }
-    }
+//    static class StopServerException extends Exception {
+//        public StopServerException(String message) {
+//            super(message);
+//        }
+//    }
 
     public static void main(String[] args) {
         try {
@@ -32,8 +32,8 @@ public class Server {
             // Create a context for the endpoints
             server.createContext("/login", new LoginHandler()); // connection
             server.createContext("/signup", new SignUpHandler());
-            //server.createContext("/changepassword", new ChangePasswordHandler());
-            // server.createContext("/validate", new JWTAuthHandler(connection)); // cannot be accessed directly by client. called by gateway for jwt auth
+            server.createContext("/forgotpassword", new ForgotPasswordHandler());
+            server.createContext("/testvalidate", new TestValidateHandler());
 
             // New pausable thread pool executor
             PausableThreadPoolExecutor executor = new PausableThreadPoolExecutor(Integer.parseInt(System.getenv("GATEWAY_THREAD_POOL_CORE_SIZE")), Integer.parseInt(System.getenv("GATEWAY_THREAD_POOL_MAX_SIZE")), Integer.parseInt(System.getenv("GATEWAY_THREAD_POOL_KEEP_ALIVE")), TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
@@ -44,36 +44,33 @@ public class Server {
             server.start();
             System.out.println("Server started on port "+System.getenv("GATEWAY_HTTP_SERVER_PORT"));
 
-            // use `kubectl exec -it <pod-name> -c <container-name> -- /bin/sh` when running k8s or use k9s
+            // artifact from running program outside of docker/k8s. why pause/resume threads/shutdown server when i can just spin up/down containers
 //            Scanner scanner = new Scanner(System.in);
+//            System.out.print("Enter command: ");
+//            boolean shutdown = true;
+//            while (shutdown) {
+//                if (scanner.hasNextLine()) {
+//                    String input = scanner.nextLine();
+//                    System.out.println("You entered: " + input);
 //
-//            while (true) {
-//                try {
-//                    System.out.print("Enter command: ");
-//                    if (scanner.hasNextLine()) {
-//                        String input = scanner.nextLine();
-//                        System.out.println("You entered: " + input);
-//
-//                        if ("gateway-server-stop".equalsIgnoreCase(input)) {
-//                            throw new StopServerException("Stopping the server.");
-//                        } else if ("gateway-thread-pool-pause".equalsIgnoreCase(input)) {
-//                            executor.pause();
-//                            System.out.println("Thread pool paused.");
-//                        } else if ("gateway-thread-pool-resume".equalsIgnoreCase(input)) {
-//                            executor.resume();
-//                            System.out.println("Thread pool resumed.");
-//                        }
+//                    if ("gateway-server-stop".equalsIgnoreCase(input)) {
+//                        shutdown = false;
+//                    } else if ("gateway-thread-pool-pause".equalsIgnoreCase(input)) {
+//                        executor.pause();
+//                        System.out.println("Thread pool paused.");
+//                    } else if ("gateway-thread-pool-resume".equalsIgnoreCase(input)) {
+//                        executor.resume();
+//                        System.out.println("Thread pool resumed.");
 //                    }
 //
-//
-//                } catch (StopServerException e) {
-//                    System.out.println("Shutting down server...");
-//                    executor.shutdown();
-//                    server.stop(0); // delay of 0
-//                    System.out.println("Server shut down.");
-//                    break;
 //                }
 //            }
+//            System.out.println("Shutting down server...");
+//            executor.shutdown();
+//            server.stop(0); // delay of 0
+//            System.out.println("Server shut down.");
+
+
 
         } catch (IOException e) {
             e.printStackTrace();
