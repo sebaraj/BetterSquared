@@ -1,10 +1,12 @@
+# BrilliantBetter
+
 languages: Java
 
-db: postgres@16
+DB/Cache: postgres@16, redis
 
-tech/protocols: nginx (ingress), rabbitmq, gRPC, Protobufs, HTTP(S), SMTP, JWTs, 
+tech/protocols: nginx, rabbitmq, HTTP(S), AMQP, SMTP, JWTs, 
 
-build/deployment tools: Maven (manage build process/dependencies), Docker (containerizing), k8s, minikube, k9s
+build/deployment tools: Maven (managing build process/dependencies), Docker (containerization), k8s (orchestration), minikube, k9s
 
 
 ## Deploying:
@@ -57,3 +59,6 @@ build/deployment tools: Maven (manage build process/dependencies), Docker (conta
 ### Kubernetes
 - I will always sing `k9s` praises and highly recommend it
 - Install with `brew install derailed/k9s/k9s`
+
+### Bet Update Service
+ - Automatically is run through a CronJob

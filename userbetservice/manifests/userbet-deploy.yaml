@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: userbet
+  labels:
+    app: userbet
+
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: userbet
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 3
+  template:
+    metadata:
+      labels:
+        app: userbet
+    spec:
+      containers:
+        - name: auth
+          image: bryanwsebaraj/userbet
+          ports:
+            - containerPort: 7000
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: userbet-configmap
+            - secretRef:
+                name: userbet-secret
