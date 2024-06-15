@@ -11,21 +11,20 @@ build/deployment tools: Maven (manage build process/dependencies), Docker (conta
 
 ### Gateway Service:
 - Define env variables for the following in appropriate (configmap) yaml files in ./gatewayservice/manifests:
-  - `GATEWAY_HTTP_SERVER_HOST, GATEWAY_HTTP_SERVER_PORT, GATEWAY_HTTP_SERVER_BACKLOG, AUTH_SERVICE_HOST, AUTH_SERVICE_PORT, GATEWAY_THREAD_POOL_CORE_SIZE, GATEWAY_THREAD_POOL_MAX_SIZE, GATEWAY_THREAD_POOL_KEEP_ALIVE`
+  - `GATEWAY_HTTP_SERVER_HOST, GATEWAY_HTTP_SERVER_PORT, GATEWAY_HTTP_SERVER_BACKLOG, AUTH_SERVICE_HOST, AUTH_SERVICE_PORT, GATEWAY_THREAD_POOL_CORE_SIZE, GATEWAY_THREAD_POOL_MAX_SIZE, GATEWAY_THREAD_POOL_KEEP_ALIVE, RABBITMQ_HOST, RABBITMQ_PORT`
+- Add mapping for 127.0.0.1 to desired host in /etc/hosts
 
 
 ### Auth Service:
 - Define env variables for the following in appropriate (configmap/secret) yaml files in ./authservice/manifests:
-  - `AUTH_DB_HOST, AUTH_DB_USER, AUTH_DB_PASSWORD, AUTH_DB_NAME, AUTH_DB_PORT, AUTH_HTTP_SERVER_HOST, AUTH_HTTP_SERVER_PORT, AUTH_HTTP_SERVER_BACKLOG, AUTH_THREAD_POOL_CORE_SIZE, AUTH_THREAD_POOL_MAX_SIZE, AUTH_THREAD_POOL_KEEP_ALIVE, AUTH_JWT_SECRET`
+  - `AUTH_DB_HOST, AUTH_DB_USER, AUTH_DB_PASSWORD, AUTH_DB_NAME, AUTH_DB_PORT, AUTH_HTTP_SERVER_HOST, AUTH_HTTP_SERVER_PORT, AUTH_HTTP_SERVER_BACKLOG, AUTH_THREAD_POOL_CORE_SIZE, AUTH_THREAD_POOL_MAX_SIZE, AUTH_THREAD_POOL_KEEP_ALIVE, AUTH_JWT_SECRET, RABBITMQ_HOST, RABBITMQ_PORT`
 
+### RabbitMQ:
 
 ### Email Service:
+ - Define env variables for the following in appropriate (configmap/secret) yaml files in ./authservice/manifests:
+  - `SMTP_SERVER_SENDER_EMAIL, SMTP_SERVER_SENDER_HOST, SMTP_SERVER_SENDER_PORT, SMTP_SERVER_SENDER_USER, RABBITMQ_HOST, RABBITMQ_PORT, SMTP_SERVER_PASSWORD`
 
-### Docker
-
-### Kubernetes
-
-### Minikube
 
 ### PostgreSQL
 - Install PostgreSQL
@@ -50,3 +49,11 @@ build/deployment tools: Maven (manage build process/dependencies), Docker (conta
 
 ## Client-Accessible Paths
 
+
+## Monitoring Backend
+### RabbitMQ
+- http://rabbitmq-manager.com, after reconfiguring 127.0.0.1 to localhost in /etc/hosts, with username "guest" and password "guest"
+
+### Kubernetes
+- I will always sing `k9s` praises and highly recommend it
+- Install with `brew install derailed/k9s/k9s`

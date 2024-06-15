@@ -8,7 +8,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
+import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.MessageProperties;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.lang.System;
@@ -16,10 +17,12 @@ import java.sql.ResultSet;
 
 public class SignUpHandler implements HttpHandler {
 
-    private Connection connection;
+    private java.sql.Connection dbConnection;
+    private com.rabbitmq.client.Channel rabbitMQChannel;
 
-    public SignUpHandler(Connection connection) {
-        this.connection = connection;
+    public SignUpHandler(java.sql.Connection dbConnection, com.rabbitmq.client.Channel rabbitMQChannel) {
+        this.dbConnection = dbConnection;
+        this.rabbitMQChannel = rabbitMQChannel;
     }
 
     @Override
@@ -50,9 +53,20 @@ public class SignUpHandler implements HttpHandler {
                 outputStream.write(response.getBytes());
                 outputStream.close();
 
-                // future: add message to RabbitMQ so gmail SMTP microservice can send email notification of new account to email provided
+                // add message to RabbitMQ so gmail SMTP microservice can send email notification of new account to email provided
+                String queueName = "signup_email_queue";
+                rabbitMQChannel.queueDeclare(queueName, true, false, false, null);
 
-                //System.out.println("Added message to RabbitMQ email queue");
+                // Create the JSON message to send to RabbitMQ
+                JSONObject messageJson = new JSONObject();
+                messageJson.put("email", email);
+                messageJson.put("username", username);
+                String message = messageJson.toString();
+
+                // Publish the message to the queue
+                rabbitMQChannel.basicPublish("", queueName, MessageProperties.PERSISTENT_TEXT_PLAIN, message.getBytes(StandardCharsets.UTF_8));
+
+                System.out.println("Sent '" + message + "' to RabbitMQ email queue");
             } catch (Exception e) {
                 e.printStackTrace();
                 String response = "Error processing sign-up request";
@@ -69,7 +83,7 @@ public class SignUpHandler implements HttpHandler {
 
     private int getRoleInt(String role) throws SQLException {
         String getSQL = "SELECT id FROM roles WHERE role_name = ?";
-        try (PreparedStatement preparedStatement = connection.prepareStatement(getSQL)) {
+        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(getSQL)) {
             preparedStatement.setString(1, role);
             try (ResultSet resultSet = preparedStatement.executeQuery()) {
                 if (resultSet.next()) {
@@ -87,7 +101,7 @@ public class SignUpHandler implements HttpHandler {
 
     private void insertUserIntoDatabase(String username, String email, String password, int role) throws SQLException {
         String insertSQL = "INSERT INTO users (username, email, password, role_id) VALUES (?, ?, ?, ?)";
-        try (PreparedStatement preparedStatement = connection.prepareStatement(insertSQL)) {
+        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(insertSQL)) {
             preparedStatement.setString(1, username);
             preparedStatement.setString(2, email);
             preparedStatement.setString(3, password);

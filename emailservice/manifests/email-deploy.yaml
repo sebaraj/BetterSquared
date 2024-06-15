@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: email
+  namespace: default
+  labels:
+    app: email
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: email
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 6
+  template:
+    metadata:
+      labels:
+        app: email
+    spec:
+      containers:
+        - name: email
+          image: bryanwsebaraj/email
+          envFrom:
+            - configMapRef:
+                name: email-configmap
+            - secretRef:
+                name: email-secret
