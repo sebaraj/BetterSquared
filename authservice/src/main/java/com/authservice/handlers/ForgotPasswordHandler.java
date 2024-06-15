@@ -14,6 +14,7 @@ import java.sql.SQLException;
 import java.lang.System;
 import java.sql.ResultSet;
 import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.MessageProperties;
 
 public class ForgotPasswordHandler implements HttpHandler {
 
@@ -62,6 +63,7 @@ public class ForgotPasswordHandler implements HttpHandler {
 
                 // Create the JSON message to send to RabbitMQ
                 JSONObject messageJson = new JSONObject();
+                String email = getEmail(username);
                 messageJson.put("email", email);
                 messageJson.put("password", unhashedPassword);
                 String message = messageJson.toString();
@@ -93,6 +95,20 @@ public class ForgotPasswordHandler implements HttpHandler {
             preparedStatement.setString(1, pass);
             preparedStatement.setString(2, username);
             preparedStatement.executeUpdate();
+        }
+    }
+
+    private String getEmail(String username) throws SQLException {
+        String getSQL = "SELECT email FROM users WHERE username = ?";
+        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(getSQL)) {
+            preparedStatement.setString(1, username);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getString("email");
+                } else {
+                    throw new SQLException();
+                }
+            }
         }
     }
 
