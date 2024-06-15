@@ -31,7 +31,7 @@ public class ValidateRequest {
 
     private final String authServiceUrl = System.getenv("AUTH_SERVICE_HOST") + ":" + System.getenv("AUTH_SERVICE_PORT");
 
-    public boolean validateRequest(Headers requestHeaders) throws IOException {
+    public boolean validateRequest(Headers requestHeaders, String[] allowedRoles) throws IOException {
         System.out.println("Routing test validate request to " + authServiceUrl);
         URL url = new URL("http://" + authServiceUrl + "/validate");
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -64,7 +64,18 @@ public class ValidateRequest {
             System.out.println("Response Body: " + response.toString());
         }
 
-        return "Authenticated".equals(response.toString()); // Validated
+        if ("Invalid".equals(response.toString()) || responseCode != 200) {
+            return false;
+        } else {
+            for (String role : allowedRoles) {
+                if (role.equals(response.toString())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        //return "Authenticated".equals(response.toString()); // Validated
 
     }
 
