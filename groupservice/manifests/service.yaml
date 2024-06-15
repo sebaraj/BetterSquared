@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: group
+spec:
+  selector:
+    app: group
+  type: ClusterIP
+  ports:
+    - name: group
+      port: 6000
+      targetPort: 6000
+      protocol: TCP
+    - name: db
+      port: 5432
+      targetPort: 5432
+      protocol: TCP

@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: group
+  labels:
+    app: group
+
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: group
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 3
+  template:
+    metadata:
+      labels:
+        app: group
+    spec:
+      containers:
+        - name: group
+          image: bryanwsebaraj/group
+          ports:
+            - containerPort: 6000
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: group-configmap
+            - secretRef:
+                name: group-secret
