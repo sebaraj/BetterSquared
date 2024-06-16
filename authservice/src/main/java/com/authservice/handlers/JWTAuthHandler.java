@@ -87,7 +87,7 @@ public class JWTAuthHandler implements HttpHandler {
     }
 
     private String getRole(String username) throws SQLException {
-        String getSQL = "SELECT role_name FROM roles WHERE id = (SELECT role_id FROM users WHERE username = ?)";
+        String getSQL = "SELECT role FROM system_roles WHERE id = (SELECT system_role_id FROM users WHERE username = ?)";
         try (PreparedStatement preparedStatement = dbConnection.prepareStatement(getSQL)) {
             preparedStatement.setString(1, username);
             try (ResultSet resultSet = preparedStatement.executeQuery()) {

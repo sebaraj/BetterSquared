@@ -9,45 +9,41 @@ USER="authdbuser"
 # Define the SQL commands to execute
 SQL_COMMANDS=$(cat <<EOF
 -- Your SQL commands here
-CREATE TABLE roles (id SERIAL PRIMARY KEY, role_name VARCHAR(50) NOT NULL UNIQUE);
-INSERT INTO roles (role_name) VALUES ('Standard'), ('Admin'), ('Moderator'), ('Guest');
-CREATE TABLE users (id SERIAL PRIMARY KEY, username VARCHAR(50) NOT NULL UNIQUE, email VARCHAR(100) NOT NULL UNIQUE, password VARCHAR(100) NOT NULL, role_id INT REFERENCES roles(id) DEFAULT 1, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, last_accessed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP);
-CREATE TABLE bet_types (id SERIAL PRIMARY KEY, type VARCHAR(50) NOT NULL UNIQUE);
+CREATE TABLE system_roles (id SERIAL PRIMARY KEY, role VARCHAR(20) NOT NULL UNIQUE);
+INSERT INTO system_roles (role) VALUES ('Standard'), ('Admin'), ('Guest');
+CREATE TABLE users (id SERIAL PRIMARY KEY, username VARCHAR(50) NOT NULL UNIQUE, email VARCHAR(100) NOT NULL UNIQUE, password VARCHAR(100) NOT NULL, system_role_id INT NOT NULL REFERENCES system_roles(id) DEFAULT 1, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, last_accessed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE bet_types (id SERIAL PRIMARY KEY, type VARCHAR(20) NOT NULL UNIQUE);
 INSERT INTO bet_types (type) VALUES ('h2h'), ('spread');
-CREATE TABLE status (id SERIAL PRIMARY KEY, status VARCHAR(50) NOT NULL UNIQUE);
-INSERT into status (status) VALUES ('active'), ('playing'), ('settled');
-CREATE TABLE league (
+CREATE TABLE statuses (id SERIAL PRIMARY KEY, status VARCHAR(20) NOT NULL UNIQUE);
+INSERT into statuses (status) VALUES ('active'), ('playing'), ('settled');
+CREATE TABLE leagues (
       id SERIAL PRIMARY KEY,
       name VARCHAR(50) NOT NULL,
       subleague_of INTEGER,
       CONSTRAINT fk_subleague
           FOREIGN KEY (subleague_of)
-          REFERENCES league(id)
+          REFERENCES leagues(id)
           ON DELETE SET NULL
       );
 CREATE TABLE teams (
       id SERIAL PRIMARY key,
-      team_name VARCHAR(70) NOT NULL,
+      team_name VARCHAR(50) NOT NULL,
       league_id INTEGER NOT NULL,
       CONSTRAINT fk_leagueid
           FOREIGN KEY (league_id)
-          REFERENCES league(id)
+          REFERENCES leagues(id)
       );
-CREATE TABLE game (
+CREATE TABLE games (
       id SERIAL PRIMARY KEY,
-      type_id INTEGER NOT NULL,
-      CONSTRAINT fk_type
-          FOREIGN KEY (type_id)
-          REFERENCES bet_types(id),
-      team1 INTEGER NOT NULL,
-      CONSTRAINT fk_team1id
-          FOREIGN KEY (team1)
+      team1_id INTEGER NOT NULL,
+      CONSTRAINT fk_team1_id
+          FOREIGN KEY (team1_id)
           REFERENCES teams(id),
       odds1 NUMERIC(10,4) NOT NULL,
       line1 NUMERIC(10,4),
-      team2 INTEGER NOT NULL,
-      CONSTRAINT fk_team2id
-          FOREIGN KEY (team2)
+      team2_id INTEGER NOT NULL,
+      CONSTRAINT fk_team2_id
+          FOREIGN KEY (team2_id)
           REFERENCES teams(id),
       odds2 NUMERIC(10,4) NOT NULL,
       line2 NUMERIC(10,4),
@@ -56,15 +52,18 @@ CREATE TABLE game (
       status_id INTEGER NOT NULL,
       CONSTRAINT fk_status
           FOREIGN KEY (status_id)
-          REFERENCES status(id),
-      winner VARCHAR(50) DEFAULT NULL,
+          REFERENCES statuses(id),
+      winner_id INTEGER DEFAULT NULL,
+      CONSTRAINT fk_winner_id
+          FOREIGN KEY (winner_id)
+	        REFERENCES teams(id),
       league_id INTEGER NOT NULL,
       CONSTRAINT fk_league
           FOREIGN KEY (league_id)
-          REFERENCES league(id)
+          REFERENCES leagues(id)
       );
-CREATE TABLE group_role (id SERIAL PRIMARY KEY, role VARCHAR(20) NOT NULL UNIQUE);
-INSERT INTO group_role (role) VALUES ('group_creator'), ('group_admin'), ('group_user');
+CREATE TABLE group_roles (id SERIAL PRIMARY KEY, role VARCHAR(20) NOT NULL UNIQUE);
+INSERT INTO group_roles (role) VALUES ('group_creator'), ('group_admin'), ('group_user');
 CREATE TABLE groups (
        id SERIAL PRIMARY KEY,
        name VARCHAR(100) NOT NULL UNIQUE,
@@ -88,12 +87,16 @@ CREATE TABLE accounts (
           REFERENCES users(id),
       CONSTRAINT fk_group_role
           FOREIGN KEY (group_role_id)
-          REFERENCES group_role(id),
+          REFERENCES group_roles(id),
       CONSTRAINT default_current_cash
           CHECK (current_cash >= 0)
       );
 CREATE TABLE bets (
       id SERIAL PRIMARY KEY,
+      type_id INTEGER NOT NULL,
+      CONSTRAINT fk_type
+          FOREIGN KEY (type_id)
+          REFERENCES bet_types(id),
       group_id INTEGER NOT NULL,
       CONSTRAINT fk_group_id
           FOREIGN KEY (group_id)
@@ -105,7 +108,7 @@ CREATE TABLE bets (
       game_id INTEGER NOT NULL,
       CONSTRAINT fk_game_id
           FOREIGN KEY (game_id)
-          REFERENCES game(id),
+          REFERENCES games(id),
       wagered NUMERIC(10,3) NOT NULL,
       amount_to_win NUMERIC(10,3) NOT NULL,
       picked_winner INTEGER NOT NULL,
