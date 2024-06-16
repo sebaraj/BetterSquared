@@ -26,9 +26,6 @@ public class JWTAuthHandler implements HttpHandler {
 
     public JWTAuthHandler(Connection connection) {
         this.dbConnection = connection;
-
-        // Load the environment variables
-        //Dotenv dotenv = Dotenv.configure().load();
         this.jwtSecret = System.getenv("AUTH_JWT_SECRET");
     }
 
@@ -37,7 +34,6 @@ public class JWTAuthHandler implements HttpHandler {
         if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
             Map<String, List<String>> headers = exchange.getRequestHeaders();
             List<String> authorizationHeader = headers.get("Authorization");
-            List<String> usernameHeader = headers.get("X-Username");
 
             if (authorizationHeader == null || authorizationHeader.isEmpty()) {
                 System.out.println("Authorization header is empty");
@@ -46,16 +42,8 @@ public class JWTAuthHandler implements HttpHandler {
                 return;
             }
 
-            if (usernameHeader == null || usernameHeader.isEmpty()) {
-                System.out.println("Username header is empty");
-                exchange.sendResponseHeaders(401, -1); // 401 Unauthorized
-                exchange.close();
-                return;
-            }
-
             // Extract  JWT from the Authorization header
             String token = authorizationHeader.get(0).replace("Bearer ", "");
-            String username = usernameHeader.get(0);
 
             try {
                 // Validate the JWT
@@ -66,7 +54,9 @@ public class JWTAuthHandler implements HttpHandler {
                 DecodedJWT jwt = verifier.verify(token);
                 System.out.println("Authenticated");
                 // JWT is valid, proceed with handling the request and returning role
-                String response = getRole(username); // return role "Authenticated";
+                String username = jwt.getSubject();
+                exchange.setAttribute("username", username);
+                String response = "Authenticated";
                 exchange.sendResponseHeaders(200, response.getBytes().length);
                 OutputStream outputStream = exchange.getResponseBody();
                 outputStream.write(response.getBytes());
@@ -84,20 +74,6 @@ public class JWTAuthHandler implements HttpHandler {
             exchange.sendResponseHeaders(405, -1); // 405 Method Not Allowed
         }
         exchange.close();
-    }
-
-    private String getRole(String username) throws SQLException {
-        String getSQL = "SELECT role FROM system_roles WHERE id = (SELECT system_role_id FROM users WHERE username = ?)";
-        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(getSQL)) {
-            preparedStatement.setString(1, username);
-            try (ResultSet resultSet = preparedStatement.executeQuery()) {
-                if (resultSet.next()) {
-                    return resultSet.getString("role_name");
-                } else {
-                    throw new SQLException();
-                }
-            }
-        }
     }
 
 }

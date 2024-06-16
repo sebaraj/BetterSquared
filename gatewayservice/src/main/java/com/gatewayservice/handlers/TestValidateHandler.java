@@ -39,8 +39,10 @@ public class TestValidateHandler implements HttpHandler {
         if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
             try {
                 ValidateRequest validator = new ValidateRequest();
-                String[] allowedRoles = {"Standard", "Admin"};
-                boolean result = validator.validateRequest(exchange.getRequestHeaders(), allowedRoles);
+                ValidateRequest.ValidationResult validationResult = validator.validateRequest(exchange.getRequestHeaders());
+                boolean result = validationResult.isValid();
+                String username = validationResult.getUsername();
+                exchange.setAttribute("username", userID);
                 String response = "Validation " + (result ? "succeeded" : "failed");
                 exchange.sendResponseHeaders(200, response.getBytes().length);
                 OutputStream os = exchange.getResponseBody();

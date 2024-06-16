@@ -31,7 +31,25 @@ public class ValidateRequest {
 
     private final String authServiceUrl = System.getenv("AUTH_SERVICE_HOST") + ":" + System.getenv("AUTH_SERVICE_PORT");
 
-    public boolean validateRequest(Headers requestHeaders, String[] allowedRoles) throws IOException {
+    public class ValidationResult {
+        private boolean isValid;
+        private String username;
+
+        public ValidationResult(boolean isValid, String username) {
+            this.isValid = isValid;
+            this.username = username;
+        }
+
+        public boolean isValid() {
+            return isValid;
+        }
+
+        public int getUsername() {
+            return username;
+        }
+    }
+
+    public boolean validateRequest(Headers requestHeaders) throws IOException {
         System.out.println("Routing test validate request to " + authServiceUrl);
         URL url = new URL("http://" + authServiceUrl + "/validate");
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -64,18 +82,9 @@ public class ValidateRequest {
             System.out.println("Response Body: " + response.toString());
         }
 
-        if ("Invalid".equals(response.toString()) || responseCode != 200) {
-            return false;
-        } else {
-            for (String role : allowedRoles) {
-                if (role.equals(response.toString())) {
-                    return true;
-                }
-            }
-            return false;
-        }
+        String username = (String) exchange.getAttribute("username");
 
-        //return "Authenticated".equals(response.toString()); // Validated
+        return new("Authenticated".equals(response.toString()), username); // Validated
 
     }
 
