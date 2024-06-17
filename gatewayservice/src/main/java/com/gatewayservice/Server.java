@@ -34,6 +34,7 @@ public class Server {
             server.createContext("/signup", new SignUpHandler());
             server.createContext("/forgotpassword", new ForgotPasswordHandler());
             server.createContext("/testvalidate", new TestValidateHandler());
+            server.createContext("/group", new GroupHandler());
 
             // New pausable thread pool executor
             PausableThreadPoolExecutor executor = new PausableThreadPoolExecutor(Integer.parseInt(System.getenv("GATEWAY_THREAD_POOL_CORE_SIZE")), Integer.parseInt(System.getenv("GATEWAY_THREAD_POOL_MAX_SIZE")), Integer.parseInt(System.getenv("GATEWAY_THREAD_POOL_KEEP_ALIVE")), TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());

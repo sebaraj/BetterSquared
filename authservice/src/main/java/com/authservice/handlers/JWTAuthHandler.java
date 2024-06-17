@@ -31,48 +31,50 @@ public class JWTAuthHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-        if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-            Map<String, List<String>> headers = exchange.getRequestHeaders();
-            List<String> authorizationHeader = headers.get("Authorization");
 
-            if (authorizationHeader == null || authorizationHeader.isEmpty()) {
-                System.out.println("Authorization header is empty");
-                exchange.sendResponseHeaders(401, -1); // 401 Unauthorized
-                exchange.close();
-                return;
-            }
+        Map<String, List<String>> headers = exchange.getRequestHeaders();
+        List<String> authorizationHeader = headers.get("Authorization");
 
-            // Extract  JWT from the Authorization header
-            String token = authorizationHeader.get(0).replace("Bearer ", "");
-
-            try {
-                // Validate the JWT
-                Algorithm algorithm = Algorithm.HMAC256(jwtSecret);
-                JWTVerifier verifier = JWT.require(algorithm)
-                        .withIssuer("auth0")
-                        .build();
-                DecodedJWT jwt = verifier.verify(token);
-                System.out.println("Authenticated");
-                // JWT is valid, proceed with handling the request and returning role
-                String username = jwt.getSubject();
-                exchange.setAttribute("username", username);
-                String response = "Authenticated";
-                exchange.sendResponseHeaders(200, response.getBytes().length);
-                OutputStream outputStream = exchange.getResponseBody();
-                outputStream.write(response.getBytes());
-                outputStream.close();
-            } catch (JWTVerificationException | SQLException exception) {
-                // Invalid token
-                String response = "Invalid";
-                exchange.sendResponseHeaders(401, -1); // 401 Unauthorized
-                OutputStream outputStream = exchange.getResponseBody();
-                outputStream.write(response.getBytes());
-                outputStream.close();
-                System.out.println("Invalid token");
-            }
-        } else {
-            exchange.sendResponseHeaders(405, -1); // 405 Method Not Allowed
+        if (authorizationHeader == null || authorizationHeader.isEmpty()) {
+            System.out.println("Authorization header is empty");
+            exchange.sendResponseHeaders(401, -1); // 401 Unauthorized
+            exchange.close();
+            return;
         }
+
+        // Extract  JWT from the Authorization header
+        String token = authorizationHeader.get(0).replace("Bearer ", "");
+
+        try {
+            // Validate the JWT
+            Algorithm algorithm = Algorithm.HMAC256(jwtSecret);
+            JWTVerifier verifier = JWT.require(algorithm)
+                    .withIssuer("auth0")
+                    .build();
+            DecodedJWT jwt = verifier.verify(token);
+            System.out.println("Authenticated");
+            // JWT is valid, proceed with handling the request and returning role
+            String username = jwt.getClaim("username").asString();
+            //exchange.setAttribute("username", username);
+            String response = "Authenticated" + "/" + username;
+            //System.out.println(response);
+            //System.out.println("username: " + username);
+            exchange.sendResponseHeaders(200, response.getBytes().length);
+            //exchange.getResponseHeaders().add("username", username);
+            // add username: username to the HTTP exchange response header
+            OutputStream outputStream = exchange.getResponseBody();
+            outputStream.write(response.getBytes());
+            outputStream.close();
+        } catch (JWTVerificationException e) {
+            // Invalid token
+            String response = "Invalid";
+            exchange.sendResponseHeaders(401, -1); // 401 Unauthorized
+            OutputStream outputStream = exchange.getResponseBody();
+            outputStream.write(response.getBytes());
+            outputStream.close();
+            System.out.println("Invalid token");
+        }
+
         exchange.close();
     }
 

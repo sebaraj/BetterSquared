@@ -13,18 +13,19 @@ import java.sql.SQLException;
 import java.lang.System;
 import java.sql.ResultSet;
 
-public class CreateGroupHandler implements HttpHandler {
+public class GroupsHandler implements HttpHandler {
 
     private java.sql.Connection dbConnection;
-    private String clientUsername;
+    //private String clientUsername;
 
-    public CreateGroupHandler(java.sql.Connection dbConnection, int clientUsername) {
-        this.clientUsername = clientUsername;
+    public GroupsHandler(java.sql.Connection dbConnection) {
+        //this.clientUsername = clientUsername;
         this.dbConnection = dbConnection;
     }
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
+        String clientUsername = (String) exchange.getAttribute("username");
         if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
             // Read the request body
             InputStream inputStream = exchange.getRequestBody();

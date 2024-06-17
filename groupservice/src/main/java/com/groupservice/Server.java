@@ -27,9 +27,9 @@ public class Server {
             HttpServer server = HttpServer.create(new InetSocketAddress(System.getenv("GROUP_HTTP_SERVER_HOST"), Integer.parseInt(System.getenv("GROUP_HTTP_SERVER_PORT"))), Integer.parseInt(System.getenv("GROUP_HTTP_SERVER_BACKLOG")));
 
             // Create a context for the endpoints
-            String clientUsername = (String) exchange.getAttribute("username");
-            server.createContext("/group", new CreateGroupHandler(dbConnection, clientUsername)); // handle get, post(create), put(update), delete by id (dont need id for post/create) (use user in header from parsed JWT to get credentials to authenticate group_role & set group_role).  join/leave group handled by /group/{id use regex}/join and /group/{id use regex}/leave (use user in header from parsed JWT to choose which to update). getLeaderboard handled by /group/{id use regex}/leaderboard?page=1 (only accessible to usernames in group and only shows cash/position). makeAdmin handled by /group/{id use regex}/admins?page=1 (only accessible by group creator check with username in JWT parse). getBetsAndCashForUser handled by /group/{id use regex}/user/{id use regex} (verify from username in parsed JWT that clientuser is in group and that other user that is being searched for is also in group)
-            server.createContext("/groups", new CreateGroupHandler(dbConnection, clientUsername)); // go through all active groups. query parametes. name & page
+
+            server.createContext("/group", new GroupHandler(dbConnection)); // handle get, post(create), put(update), delete by id (dont need id for post/create) (use user in header from parsed JWT to get credentials to authenticate group_role & set group_role).  join/leave group handled by /group/{id use regex}/join and /group/{id use regex}/leave (use user in header from parsed JWT to choose which to update). getLeaderboard handled by /group/{id use regex}/leaderboard?page=1 (only accessible to usernames in group and only shows cash/position). makeAdmin handled by /group/{id use regex}/admins?page=1 (only accessible by group creator check with username in JWT parse). getBetsAndCashForUser handled by /group/{id use regex}/user/{id use regex} (verify from username in parsed JWT that clientuser is in group and that other user that is being searched for is also in group)
+            server.createContext("/groups", new GroupsHandler(dbConnection)); // go through all active groups. query parametes. name & page
 
 
             // New pausable thread pool executor

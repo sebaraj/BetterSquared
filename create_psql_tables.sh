@@ -121,7 +121,7 @@ CREATE OR REPLACE FUNCTION set_default_current_cash()
 RETURNS TRIGGER AS \$\$
 BEGIN
     IF NEW.current_cash IS NULL THEN
-        SELECT starting_cash INTO NEW.current_cash FROM "groups" WHERE id = NEW.group_id;
+        SELECT starting_cash INTO NEW.current_cash FROM "groups" WHERE group_name = NEW.group_name;
     END IF;
     RETURN NEW;
 END;

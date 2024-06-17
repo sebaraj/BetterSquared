@@ -44,16 +44,17 @@ public class ValidateRequest {
             return isValid;
         }
 
-        public int getUsername() {
+        public String getUsername() {
             return username;
         }
     }
 
-    public boolean validateRequest(Headers requestHeaders) throws IOException {
+    public ValidationResult validateRequest(HttpExchange exchange) throws IOException {
+        Headers requestHeaders = exchange.getRequestHeaders();
         System.out.println("Routing test validate request to " + authServiceUrl);
         URL url = new URL("http://" + authServiceUrl + "/validate");
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setRequestMethod("POST");
+        //conn.setRequestMethod("POST");
         conn.setDoOutput(true);
         conn.setRequestProperty("Content-Type", "application/json; utf-8");
 
@@ -81,10 +82,25 @@ public class ValidateRequest {
             // Print out the response body
             System.out.println("Response Body: " + response.toString());
         }
+        if ("Invalid".equals(response.toString())) {
+            return new ValidationResult(false, "");
+        }
+        String[] parts = (response.toString()).split("/");
+        for (String part : parts) {
+            System.out.println("[" + part + "]");
+        }
 
-        String username = (String) exchange.getAttribute("username");
+        String authy = parts[0];
+        String username = parts[parts.length - 1];
+//        System.out.println("Username: " + username);
+//        Headers responseHeaders = exchange.getResponseHeaders();
+//        if (responseHeaders.containsKey("username")) {
+//            System.out.println("HEADER USERNAME IN VALIDATE REQ: " + responseHeaders.get("username"));
+//            username = responseHeaders.getFirst("username");
+//        }
 
-        return new("Authenticated".equals(response.toString()), username); // Validated
+
+        return new ValidationResult("Authenticated".equals(authy), username); // Validated
 
     }
 
