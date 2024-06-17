@@ -39,12 +39,12 @@ public class SignUpHandler implements HttpHandler {
                 String username = jsonObject.getString("username");
                 String email = jsonObject.getString("email");
                 String password = jsonObject.getString("password");
-                int roleInt = getRoleInt((String) jsonObject.optString("role", "Standard"));
+                //int roleInt = getRoleInt((String) jsonObject.optString("role", "Standard"));
                 // Hash and salt the password
                 String hashedPassword = hashPassword(password);
 
                 // Insert the sign-up information into the database
-                insertUserIntoDatabase(username, email, hashedPassword, roleInt);
+                insertUserIntoDatabase(username, email, hashedPassword);
                 System.out.println("User: " + username + " created and inserted into database.");
                 // Send a response
                 String response = "User signed up successfully";
@@ -81,31 +81,16 @@ public class SignUpHandler implements HttpHandler {
         }
     }
 
-    private int getRoleInt(String role) throws SQLException {
-        String getSQL = "SELECT id FROM roles WHERE role_name = ?";
-        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(getSQL)) {
-            preparedStatement.setString(1, role);
-            try (ResultSet resultSet = preparedStatement.executeQuery()) {
-                if (resultSet.next()) {
-                    return resultSet.getInt("id");
-                } else {
-                    throw new SQLException();
-                }
-            }
-        }
-    }
-
     private String hashPassword(String password) {
         return BCrypt.hashpw(password, BCrypt.gensalt());
     }
 
-    private void insertUserIntoDatabase(String username, String email, String password, int role) throws SQLException {
-        String insertSQL = "INSERT INTO users (username, email, password, role_id) VALUES (?, ?, ?, ?)";
+    private void insertUserIntoDatabase(String username, String email, String password) throws SQLException {
+        String insertSQL = "INSERT INTO users (username, email, password) VALUES (?, ?, ?)";
         try (PreparedStatement preparedStatement = dbConnection.prepareStatement(insertSQL)) {
             preparedStatement.setString(1, username);
             preparedStatement.setString(2, email);
             preparedStatement.setString(3, password);
-            preparedStatement.setInt(4, role);
             preparedStatement.executeUpdate();
         }
     }

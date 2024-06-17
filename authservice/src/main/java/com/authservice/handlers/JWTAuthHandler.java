@@ -26,78 +26,56 @@ public class JWTAuthHandler implements HttpHandler {
 
     public JWTAuthHandler(Connection connection) {
         this.dbConnection = connection;
-
-        // Load the environment variables
-        //Dotenv dotenv = Dotenv.configure().load();
         this.jwtSecret = System.getenv("AUTH_JWT_SECRET");
     }
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-        if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-            Map<String, List<String>> headers = exchange.getRequestHeaders();
-            List<String> authorizationHeader = headers.get("Authorization");
-            List<String> usernameHeader = headers.get("X-Username");
 
-            if (authorizationHeader == null || authorizationHeader.isEmpty()) {
-                System.out.println("Authorization header is empty");
-                exchange.sendResponseHeaders(401, -1); // 401 Unauthorized
-                exchange.close();
-                return;
-            }
+        Map<String, List<String>> headers = exchange.getRequestHeaders();
+        List<String> authorizationHeader = headers.get("Authorization");
 
-            if (usernameHeader == null || usernameHeader.isEmpty()) {
-                System.out.println("Username header is empty");
-                exchange.sendResponseHeaders(401, -1); // 401 Unauthorized
-                exchange.close();
-                return;
-            }
-
-            // Extract  JWT from the Authorization header
-            String token = authorizationHeader.get(0).replace("Bearer ", "");
-            String username = usernameHeader.get(0);
-
-            try {
-                // Validate the JWT
-                Algorithm algorithm = Algorithm.HMAC256(jwtSecret);
-                JWTVerifier verifier = JWT.require(algorithm)
-                        .withIssuer("auth0")
-                        .build();
-                DecodedJWT jwt = verifier.verify(token);
-                System.out.println("Authenticated");
-                // JWT is valid, proceed with handling the request and returning role
-                String response = getRole(username); // return role "Authenticated";
-                exchange.sendResponseHeaders(200, response.getBytes().length);
-                OutputStream outputStream = exchange.getResponseBody();
-                outputStream.write(response.getBytes());
-                outputStream.close();
-            } catch (JWTVerificationException | SQLException exception) {
-                // Invalid token
-                String response = "Invalid";
-                exchange.sendResponseHeaders(401, -1); // 401 Unauthorized
-                OutputStream outputStream = exchange.getResponseBody();
-                outputStream.write(response.getBytes());
-                outputStream.close();
-                System.out.println("Invalid token");
-            }
-        } else {
-            exchange.sendResponseHeaders(405, -1); // 405 Method Not Allowed
+        if (authorizationHeader == null || authorizationHeader.isEmpty()) {
+            System.out.println("Authorization header is empty");
+            exchange.sendResponseHeaders(401, -1); // 401 Unauthorized
+            exchange.close();
+            return;
         }
+
+        // Extract  JWT from the Authorization header
+        String token = authorizationHeader.get(0).replace("Bearer ", "");
+
+        try {
+            // Validate the JWT
+            Algorithm algorithm = Algorithm.HMAC256(jwtSecret);
+            JWTVerifier verifier = JWT.require(algorithm)
+                    .withIssuer("auth0")
+                    .build();
+            DecodedJWT jwt = verifier.verify(token);
+            System.out.println("Authenticated");
+            // JWT is valid, proceed with handling the request and returning role
+            String username = jwt.getClaim("username").asString();
+            //exchange.setAttribute("username", username);
+            String response = "Authenticated" + "/" + username;
+            //System.out.println(response);
+            //System.out.println("username: " + username);
+            exchange.sendResponseHeaders(200, response.getBytes().length);
+            //exchange.getResponseHeaders().add("username", username);
+            // add username: username to the HTTP exchange response header
+            OutputStream outputStream = exchange.getResponseBody();
+            outputStream.write(response.getBytes());
+            outputStream.close();
+        } catch (JWTVerificationException e) {
+            // Invalid token
+            String response = "Invalid";
+            exchange.sendResponseHeaders(401, -1); // 401 Unauthorized
+            OutputStream outputStream = exchange.getResponseBody();
+            outputStream.write(response.getBytes());
+            outputStream.close();
+            System.out.println("Invalid token");
+        }
+
         exchange.close();
-    }
-
-    private String getRole(String username) throws SQLException {
-        String getSQL = "SELECT role_name FROM roles WHERE id = (SELECT role_id FROM users WHERE username = ?)";
-        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(getSQL)) {
-            preparedStatement.setString(1, username);
-            try (ResultSet resultSet = preparedStatement.executeQuery()) {
-                if (resultSet.next()) {
-                    return resultSet.getString("role_name");
-                } else {
-                    throw new SQLException();
-                }
-            }
-        }
     }
 
 }

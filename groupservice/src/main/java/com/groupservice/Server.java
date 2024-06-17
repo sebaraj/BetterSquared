@@ -2,8 +2,6 @@ package com.groupservice.server;
 
 import com.sun.net.httpserver.HttpServer;
 import com.rabbitmq.client.ConnectionFactory;
-//import com.rabbitmq.client.Connection;
-//import com.rabbitmq.client.Channel;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.sql.Connection;
@@ -18,9 +16,6 @@ import org.postgresql.Driver;
 public class Server {
 
     private static java.sql.Connection dbConnection;
-    //private static com.rabbitmq.client.Connection rabbitMQConnection;
-    //private static com.rabbitmq.client.Channel rabbitMQChannel;
-
 
     public static void main(String[] args) {
         try {
@@ -28,13 +23,14 @@ public class Server {
             // connect to DB
             connectToDatabase(); // dotenv
 
-            //connectToRabbitMQ();
-
             // Create an HttpServer instance, listening on port HTTP_SERVER_PORT with backlog HTTP_SERVER_BACKLOG
             HttpServer server = HttpServer.create(new InetSocketAddress(System.getenv("GROUP_HTTP_SERVER_HOST"), Integer.parseInt(System.getenv("GROUP_HTTP_SERVER_PORT"))), Integer.parseInt(System.getenv("GROUP_HTTP_SERVER_BACKLOG")));
 
             // Create a context for the endpoints
-            server.createContext("/createGroup", new CreateGroupHandler(dbConnection));
+
+            server.createContext("/group", new GroupHandler(dbConnection)); // handle get, post(create), put(update), delete by id (dont need id for post/create) (use user in header from parsed JWT to get credentials to authenticate group_role & set group_role).  join/leave group handled by /group/{id use regex}/join and /group/{id use regex}/leave (use user in header from parsed JWT to choose which to update). getLeaderboard handled by /group/{id use regex}/leaderboard?page=1 (only accessible to usernames in group and only shows cash/position). makeAdmin handled by /group/{id use regex}/admins?page=1 (only accessible by group creator check with username in JWT parse). getBetsAndCashForUser handled by /group/{id use regex}/user/{id use regex} (verify from username in parsed JWT that clientuser is in group and that other user that is being searched for is also in group)
+            server.createContext("/groups", new GroupsHandler(dbConnection)); // go through all active groups. query parametes. name & page
+
 
             // New pausable thread pool executor
             PausableThreadPoolExecutor executor = new PausableThreadPoolExecutor(Integer.parseInt(System.getenv("GROUP_THREAD_POOL_CORE_SIZE")), Integer.parseInt(System.getenv("GROUP_THREAD_POOL_MAX_SIZE")), Integer.parseInt(System.getenv("GROUP_THREAD_POOL_KEEP_ALIVE")), TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
@@ -62,19 +58,4 @@ public class Server {
         System.out.println("Connected to the PostgreSQL server successfully.");
     }
 
-//    private static void connectToRabbitMQ() {
-//        System.out.println("Connecting to RabbitMQ...");
-//        ConnectionFactory factory = new ConnectionFactory();
-//        factory.setHost(System.getenv("RABBITMQ_HOST"));
-//        factory.setPort(Integer.parseInt(System.getenv("RABBITMQ_PORT")));
-//        //factory.setUsername(System.getenv("RABBITMQ_USER"));
-//        //factory.setPassword(System.getenv("RABBITMQ_PASSWORD"));
-//        try {
-//            rabbitMQConnection = factory.newConnection();
-//            rabbitMQChannel = rabbitMQConnection.createChannel();
-//            System.out.println("Connected to RabbitMQ successfully.");
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-//    }
 }

@@ -8,25 +8,24 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.MessageProperties;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.lang.System;
 import java.sql.ResultSet;
 
-public class CreateGroupHandler implements HttpHandler {
+public class GroupsHandler implements HttpHandler {
 
     private java.sql.Connection dbConnection;
-    //private com.rabbitmq.client.Channel rabbitMQChannel;
+    //private String clientUsername;
 
-    public CreateGroupHandler(java.sql.Connection dbConnection) {
+    public GroupsHandler(java.sql.Connection dbConnection) {
+        //this.clientUsername = clientUsername;
         this.dbConnection = dbConnection;
-        //this.rabbitMQChannel = rabbitMQChannel;
     }
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
+        String clientUsername = (String) exchange.getAttribute("username");
         if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
             // Read the request body
             InputStream inputStream = exchange.getRequestBody();
@@ -61,19 +60,15 @@ public class CreateGroupHandler implements HttpHandler {
         }
     }
 
-    private int getRoleInt(String role) throws SQLException {
-        String getSQL = "SELECT id FROM roles WHERE role_name = ?";
-        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(getSQL)) {
-            preparedStatement.setString(1, role);
-            try (ResultSet resultSet = preparedStatement.executeQuery()) {
-                if (resultSet.next()) {
-                    return resultSet.getInt("id");
-                } else {
-                    throw new SQLException();
-                }
-            }
-        }
+    private void handleGetGroupsByName(HttpExchange exchange, String name, int page) throws IOException {
+
     }
+
+    private void handleGetGroupsWithoutName(HttpExchange exchange, int page) throws IOException {
+
+    }
+
+
 
 //   Modify this to create new group
 //    private void insertUserIntoDatabase(String username, String email, String password, int role) throws SQLException {

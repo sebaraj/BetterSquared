@@ -1,4 +1,4 @@
-# BrilliantBetter
+# Better<sup>2<sup>
 
 Backend of a group-based sports betting simulator. Written in Java, utilizing PostgreSQL, Redis, NGINX, RabbitMQ, Maven, Docker, and Kubernetes.
 
@@ -40,6 +40,8 @@ Backend of a group-based sports betting simulator. Written in Java, utilizing Po
 
 ### Database 
 
+![PostgreSQL DB Schema](./assets/bettersquared_postgresql_schema.png)
+
 [//]: # (insert picture of DB from Datagrip)
 
 ## Deploying:
@@ -58,6 +60,13 @@ Backend of a group-based sports betting simulator. Written in Java, utilizing Po
  - Define env variables for the following in appropriate (configmap/secret) yaml files in ./authservice/manifests:
   - `SMTP_SERVER_SENDER_EMAIL, SMTP_SERVER_SENDER_HOST, SMTP_SERVER_SENDER_PORT, SMTP_SERVER_SENDER_USER, RABBITMQ_HOST, RABBITMQ_PORT, SMTP_SERVER_PASSWORD`
 
+### Group Service
+
+
+### User Betting Service
+
+
+### Update Bet Service
 
 ### PostgreSQL
 - Install PostgreSQL
@@ -71,12 +80,27 @@ Backend of a group-based sports betting simulator. Written in Java, utilizing Po
     - `CREATE USER authdbuser WITH PASSWORD 'testauth' CREATEDB;`
     - `CREATE DATABASE authdb with OWNER = authdbuser;`
     - `\q`
+    - Insert your host, port, database, user at the top of create_psql_tables.sh (in project root directory). 
     - `./create_psql_tables.sh`
 - Drop Tables in DB
+    - Insert your host, port, database, user at the top of drop_psql_tables.sh (in project root directory).
     - `./drop_psql_tables.sh`  
 
+### Docker
+- Install Docker
+  - `brew install --cask docker` 
+  - Grant docker privileged access (message when you launch docker)
+  
+### Kubernetes
+- Install Kubernetes
+  - `brew install kubectl`
+
+### Minikube
+- Install Minikube
+  - `brew install minikube`
+
 ### Starting Backend
-- `./start-backend.sh` in this project root directory, with sudo permissions
+- `./start-backend.sh` in this project root directory, with sudo permissions, to deploy on local computer via minikube
 
 ## Client-Accessible Paths
 (swagger?)

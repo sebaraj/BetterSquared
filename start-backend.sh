@@ -17,7 +17,9 @@ kubectl apply -f ./gatewayservice/manifests/gateway-deploy.yaml
 kubectl apply -f ./gatewayservice/manifests/secret.yaml
 kubectl apply -f ./gatewayservice/manifests/service.yaml
 
-kubectl apple -f ./emailservice/manifests/
+kubectl apply -f ./emailservice/manifests/
+
+kubectl apply -f ./groupservice/manifests/
 
 sudo kubectl apply -f ./gatewayservice/manifests/ingress.yaml
 

@@ -78,6 +78,8 @@
           <source>1.8</source>
           <target>1.8</target>
           <includes>
+            <include>**/handlers/GroupHandler.java</include>
+            <include>**/handlers/GroupsHandler.java</include>
             <include>**/PausableThreadPoolExecutor.java</include>
             <include>**/Server.java</include>
           </includes>

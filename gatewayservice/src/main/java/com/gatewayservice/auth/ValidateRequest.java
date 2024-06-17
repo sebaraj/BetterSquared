@@ -31,11 +31,30 @@ public class ValidateRequest {
 
     private final String authServiceUrl = System.getenv("AUTH_SERVICE_HOST") + ":" + System.getenv("AUTH_SERVICE_PORT");
 
-    public boolean validateRequest(Headers requestHeaders, String[] allowedRoles) throws IOException {
+    public class ValidationResult {
+        private boolean isValid;
+        private String username;
+
+        public ValidationResult(boolean isValid, String username) {
+            this.isValid = isValid;
+            this.username = username;
+        }
+
+        public boolean isValid() {
+            return isValid;
+        }
+
+        public String getUsername() {
+            return username;
+        }
+    }
+
+    public ValidationResult validateRequest(HttpExchange exchange) throws IOException {
+        Headers requestHeaders = exchange.getRequestHeaders();
         System.out.println("Routing test validate request to " + authServiceUrl);
         URL url = new URL("http://" + authServiceUrl + "/validate");
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setRequestMethod("POST");
+        //conn.setRequestMethod("POST");
         conn.setDoOutput(true);
         conn.setRequestProperty("Content-Type", "application/json; utf-8");
 
@@ -63,19 +82,25 @@ public class ValidateRequest {
             // Print out the response body
             System.out.println("Response Body: " + response.toString());
         }
-
-        if ("Invalid".equals(response.toString()) || responseCode != 200) {
-            return false;
-        } else {
-            for (String role : allowedRoles) {
-                if (role.equals(response.toString())) {
-                    return true;
-                }
-            }
-            return false;
+        if ("Invalid".equals(response.toString())) {
+            return new ValidationResult(false, "");
+        }
+        String[] parts = (response.toString()).split("/");
+        for (String part : parts) {
+            System.out.println("[" + part + "]");
         }
 
-        //return "Authenticated".equals(response.toString()); // Validated
+        String authy = parts[0];
+        String username = parts[parts.length - 1];
+//        System.out.println("Username: " + username);
+//        Headers responseHeaders = exchange.getResponseHeaders();
+//        if (responseHeaders.containsKey("username")) {
+//            System.out.println("HEADER USERNAME IN VALIDATE REQ: " + responseHeaders.get("username"));
+//            username = responseHeaders.getFirst("username");
+//        }
+
+
+        return new ValidationResult("Authenticated".equals(authy), username); // Validated
 
     }
 
