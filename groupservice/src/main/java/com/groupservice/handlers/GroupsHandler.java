@@ -2,16 +2,21 @@ package com.groupservice.server;
 
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.Headers;
+import org.json.JSONArray;
 import org.json.JSONObject;
-import org.mindrot.jbcrypt.BCrypt;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.lang.System;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Date;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class GroupsHandler implements HttpHandler {
 
@@ -25,61 +30,118 @@ public class GroupsHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-        String clientUsername = (String) exchange.getAttribute("username");
-        if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
-            // Read the request body
-            InputStream inputStream = exchange.getRequestBody();
-            String requestBody = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-            System.out.println("Received JSON payload: " + requestBody);
-
-            try {
-                // Parse the JSON payload
-                JSONObject jsonObject = new JSONObject(requestBody);
-                String gorupName = jsonObject.getString("groupName");
-                // Create group in DB
-
-                // Send a response
-                String response = "Group created successfully up successfully";
-                exchange.sendResponseHeaders(200, response.getBytes().length);
-                OutputStream outputStream = exchange.getResponseBody();
-                outputStream.write(response.getBytes());
-                outputStream.close();
-
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                String response = "Error processing group creation request";
-                exchange.sendResponseHeaders(500, response.getBytes().length);
-                OutputStream outputStream = exchange.getResponseBody();
-                outputStream.write(response.getBytes());
-                outputStream.close();
+        try {
+            String clientUsername; // = "bryans"; //  (String) exchange.getAttribute("username");
+            Headers requestHeaders = exchange.getRequestHeaders();
+            if (requestHeaders.containsKey("username")) {
+                clientUsername = requestHeaders.getFirst("username");
             }
-        } else {
-            // Method not allowed
-            exchange.sendResponseHeaders(405, -1); // 405 Method Not Allowed
+            int page = 0;
+            URI requestUri = exchange.getRequestURI();
+            String path = requestUri.getPath();
+            String query = requestUri.getQuery();
+            Map<String, String> queryParams = parseQueryParams(query);
+            String pageStr = queryParams.getOrDefault("page", "-1");
+            page = Integer.parseInt(pageStr);
+            String group_name = queryParams.getOrDefault("group-name", "");
+
+            if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+                // if pageSTR is -1 and group_name not empty
+                if (page > -1 && !group_name.isEmpty()) {
+                    handleGetGroupsByName(exchange, group_name, page);
+                    return;
+                } else if (page > -1 && group_name.isEmpty()) {
+                    handleGetGroupsWithoutName(exchange, page);
+                    return;
+                }
+            }
+            String response = "Method not allowed";
+            sendResponse(exchange, 405, response);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            String response = "{\"error\":\"" + e.getMessage() + "\"}";
+            sendResponse(, exchange, 500, response);
+        }
+
+    }
+
+    private void sendResponse(HttpExchange exchange, int statusCode, String response) throws IOException {
+        exchange.sendResponseHeaders(statusCode, response.getBytes().length);
+        try (OutputStream outputStream = exchange.getResponseBody()) {
+            outputStream.write(response.getBytes());
+            outputStream.close();
         }
     }
 
-    private void handleGetGroupsByName(HttpExchange exchange, String name, int page) throws IOException {
-
+    private boolean has_been_deleted(String group_name) throws SQLException {
+        String query = "SELECT * FROM groups WHERE group_name = ?";
+        try (PreparedStatement statement = dbConnection.prepareStatement(query)) {
+            statement.setString(1, group_name);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getBoolean("has_been_deleted");
+                } else {
+                    throw new SQLException("Group not found");
+                }
+            }
+        }
     }
 
-    private void handleGetGroupsWithoutName(HttpExchange exchange, int page) throws IOException {
+    private void handleGetGroupsByName(HttpExchange exchange, String name, int page) { //throws IOException {
+        try {
+            String query = "SELECT * FROM groups WHERE group_name LIKE ? AND has_been_deleted = false LIMIT 50 OFFSET ?"; // get all groups with start with the substring name
+            try (PreparedStatement statement = dbConnection.prepareStatement(query)) {
+                statement.setString(1, name + "%");
+                statement.setInt(2, page*50);
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    JSONArray groupsArray = new JSONArray();
+                    while (resultSet.next()) {
+                        JSONObject groupJson = new JSONObject();
+                        groupJson.put("group_name", resultSet.getString("group_name"));
+                        groupJson.put("start_date", resultSet.getDate("start_date"));
+                        groupJson.put("end_date", resultSet.getDate("end_date"));
+                        groupJson.put("is_active", resultSet.getBoolean("is_active"));
+                        groupJson.put("starting_cash", resultSet.getFloat("starting_cash"));
+                        groupsArray.put(groupJson);
+                    }
 
+                    String response = groupsArray.toString();
+                    sendResponse(exchange, 200, response);
+                }
+            }
+        } catch (SQLException e) {
+            String response = "Groups with that name do not exist.";
+            sendResponse(exchange, 404, response);
+        }
     }
 
+    private void handleGetGroupsWithoutName(HttpExchange exchange, int page) { //throws IOException {
+        try {
+            String query = "SELECT * FROM groups WHERE has_been_deleted = false AND end_date > CURRENT_DATE ORDER BY end_date LIMIT 50 OFFSET ?";
+            try (PreparedStatement statement = dbConnection.prepareStatement(query)) {
+                statement.setInt(1, page*50);
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    JSONArray groupsArray = new JSONArray();
+                    while (resultSet.next()) {
+                        JSONObject groupJson = new JSONObject();
+                        groupJson.put("group_name", resultSet.getString("group_name"));
+                        groupJson.put("start_date", resultSet.getDate("start_date"));
+                        groupJson.put("end_date", resultSet.getDate("end_date"));
+                        groupJson.put("is_active", resultSet.getBoolean("is_active"));
+                        groupJson.put("starting_cash", resultSet.getFloat("starting_cash"));
+                        groupsArray.put(groupJson);
+                    }
 
+                    String response = groupsArray.toString();
+                    sendResponse(exchange, 200, response);
+                }
+            }
+        } catch (SQLException e) {
+            String response = "Failed to get groups.";
+            sendResponse(exchange, 500, response);
+        }
+    }
 
-//   Modify this to create new group
-//    private void insertUserIntoDatabase(String username, String email, String password, int role) throws SQLException {
-//        String insertSQL = "INSERT INTO users (username, email, password, role_id) VALUES (?, ?, ?, ?)";
-//        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(insertSQL)) {
-//            preparedStatement.setString(1, username);
-//            preparedStatement.setString(2, email);
-//            preparedStatement.setString(3, password);
-//            preparedStatement.setInt(4, role);
-//            preparedStatement.executeUpdate();
-//        }
-//    }
 
 }

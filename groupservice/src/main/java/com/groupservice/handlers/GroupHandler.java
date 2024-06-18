@@ -38,7 +38,7 @@ public class GroupHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-        String clientUsername = "bryans"; //  (String) exchange.getAttribute("username");
+        String clientUsername; // = "bryans"; //  (String) exchange.getAttribute("username");
         Headers requestHeaders = exchange.getRequestHeaders();
         if (requestHeaders.containsKey("username")) {
             clientUsername = requestHeaders.getFirst("username");

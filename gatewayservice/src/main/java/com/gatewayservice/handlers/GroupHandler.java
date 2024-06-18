@@ -44,8 +44,8 @@ public class GroupHandler implements HttpHandler {
 
             String username = validationResult.getUsername();
 
-            // Forward request to the authentication service
-            System.out.println("Routing group request to " + groupServiceURL);
+            // Forward request to the group service
+            //System.out.println("Routing group request to " + groupServiceURL);
             System.out.println("http://" + groupServiceURL + exchange.getRequestURI().toString());
             URL url = new URL("http://" + groupServiceURL + exchange.getRequestURI().toString());
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
