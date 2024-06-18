@@ -66,8 +66,10 @@ CREATE TABLE groups (
        start_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
        end_date TIMESTAMP NOT NULL,
        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+       has_been_deleted BOOLEAN NOT NULL DEFAULT FALSE,
        starting_cash NUMERIC(10,3) NOT NULL DEFAULT 100.000
        );
+CREATE INDEX idx_group_end_date ON groups(end_date);
 CREATE TABLE accounts (
       group_name VARCHAR(100) NOT NULL,
       username VARCHAR(50) NOT NULL,
@@ -86,6 +88,7 @@ CREATE TABLE accounts (
       CONSTRAINT default_current_cash
           CHECK (current_cash >= 0)
       );
+CREATE INDEX idx_accounts_group_name ON accounts(group_name);
 CREATE TABLE bets (
       bet_id SERIAL PRIMARY KEY,
       type VARCHAR(20),
