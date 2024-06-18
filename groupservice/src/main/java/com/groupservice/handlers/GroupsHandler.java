@@ -17,6 +17,8 @@ import java.sql.SQLException;
 import java.sql.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.Map;
+import java.util.HashMap;
 
 public class GroupsHandler implements HttpHandler {
 
@@ -60,10 +62,26 @@ public class GroupsHandler implements HttpHandler {
 
         } catch (Exception e) {
             e.printStackTrace();
-            String response = "{\"error\":\"" + e.getMessage() + "\"}";
-            sendResponse(, exchange, 500, response);
+            String response = "Not allowed";
+            sendResponse(exchange, 500, response);
         }
 
+    }
+
+    private Map<String, String> parseQueryParams(String query) {
+        Map<String, String> queryParams = new HashMap<>();
+        if (query != null && !query.isEmpty()) {
+            String[] pairs = query.split("&");
+            for (String pair : pairs) {
+                String[] keyValue = pair.split("=");
+                if (keyValue.length > 1) {
+                    queryParams.put(keyValue[0], keyValue[1]);
+                } else {
+                    queryParams.put(keyValue[0], "");
+                }
+            }
+        }
+        return queryParams;
     }
 
     private void sendResponse(HttpExchange exchange, int statusCode, String response) throws IOException {
@@ -88,7 +106,7 @@ public class GroupsHandler implements HttpHandler {
         }
     }
 
-    private void handleGetGroupsByName(HttpExchange exchange, String name, int page) { //throws IOException {
+    private void handleGetGroupsByName(HttpExchange exchange, String name, int page) throws IOException {
         try {
             String query = "SELECT * FROM groups WHERE group_name LIKE ? AND has_been_deleted = false LIMIT 50 OFFSET ?"; // get all groups with start with the substring name
             try (PreparedStatement statement = dbConnection.prepareStatement(query)) {
@@ -116,7 +134,7 @@ public class GroupsHandler implements HttpHandler {
         }
     }
 
-    private void handleGetGroupsWithoutName(HttpExchange exchange, int page) { //throws IOException {
+    private void handleGetGroupsWithoutName(HttpExchange exchange, int page) throws IOException {
         try {
             String query = "SELECT * FROM groups WHERE has_been_deleted = false AND end_date > CURRENT_DATE ORDER BY end_date LIMIT 50 OFFSET ?";
             try (PreparedStatement statement = dbConnection.prepareStatement(query)) {
