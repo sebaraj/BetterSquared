@@ -278,6 +278,86 @@ public class GroupHandler implements HttpHandler {
 
     private void handleUpdateGroup(HttpExchange exchange, String group_name, String username) { //throws IOException {
         System.out.println("Not done");// need to be group creator or group admin
+        try {
+            if (roleInGroup(username, group_name) > 2) {
+                String response = "Need to be group creator or admin.";
+                sendResponse(exchange, 403, response);
+            }
+            InputStream inputStream = exchange.getRequestBody();
+            String requestBody = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+            System.out.println("Received JSON payload: " + requestBody);
+
+            JSONObject jsonObject = new JSONObject(requestBody);
+            String updated_group_name = jsonObject.getString("group_name");
+            Date updated_start_date = Date.valueOf(jsonObject.getString("start_date"));
+            Date updated_end_date = Date.valueOf(jsonObject.getString("end_date"));
+            boolean updated_is_active = updated_start_date.before(new Date(System.currentTimeMillis()));
+            float updated_starting_cash = (float) jsonObject.getDouble("starting_cash");
+
+            // pull data from db. if is active, can only change the group name, end date. if not active, can change everything.
+            String query = "SELECT * FROM groups WHERE group_name = ?";
+            try (PreparedStatement statement = dbConnection.prepareStatement(query)) {
+                statement.setString(1, group_name);
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    if (resultSet.next()) {
+                        boolean isActive =  resultSet.getBoolean("is_active"));
+                        Date old_start_date = Date.valueOf(resultSet.getString("start_date"));
+                    } else {
+                        throw new SQLException("Group not found");
+                    }
+                }
+            }
+
+            if (isActive) {
+                if (old_start_date.before(updated_end_date)) {
+                    String message = "Group is already active, so cannot change the start date. End date needs to be after start date.";
+                    sendResponse(exchange, 400, message);
+                    return;
+                }
+                String update = "UPDATE groups SET end_date = ? AND group_name = ? WHERE username = ? AND group_name = ?";
+                try (PreparedStatement statement = dbConnection.prepareStatement(update)) {
+                    statement.setDate(1, updated_end_date);
+                    statement.setString(2, updated_group_name);
+                    statement.setString(3, username);
+                    statement.setString(4, group_name);
+                    int rowsAffected = statement.executeUpdate();
+
+                    if (rowsAffected > 0) {
+                        String message = updated_group_name + " was successfully updated. Since the group is active, only end_date & name can be changed.";
+                        sendResponse(exchange, 200, message);
+                    } else {
+                        String message = "New group name already taken by another group.";
+                        sendResponse(exchange, 404, message);
+                    }
+                }
+            } else {
+                String update = "UPDATE groups SET start_date AND end_date = ? AND group_name = ? AND starting_cash = ? AND is_active = ? WHERE username = ? AND group_name = ?";
+                try (PreparedStatement statement = dbConnection.prepareStatement(update)) {
+                    statement.setDate(1, updated_start_date);
+                    statement.setDate(2, updated_end_date);
+                    statement.setString(3, updated_group_name);
+                    statement.setFloat(4, updated_starting_cash);
+                    statement.setString(5, updated_group_name);
+                    statement.setBoolean(6, updated_is_active);
+                    statement.setString(7, username);
+                    statement.setString(8, group_name);
+                    int rowsAffected = statement.executeUpdate();
+
+                    if (rowsAffected > 0) {
+                        String message = updated_group_name + " was successfully updated.";
+                        sendResponse(exchange, 200, message);
+                    } else {
+                        String message = "Error updating group.";
+                        sendResponse(exchange, 404, message);
+                    }
+                }
+            }
+
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            String response = "Update group failed.";
+        }
     }
 
     private void handleJoinGroup(HttpExchange exchange, String group_name, String username) { //throws IOException {
@@ -442,17 +522,17 @@ public class GroupHandler implements HttpHandler {
                             statement.setInt(1, resultSet.get("game_id"));
                             ResultSet gameResultSet = gameStatement.executeQuery()
                             if (gameResultSet.next()) {
-                                messageJson.put("team1", resultSet.getStirng("team1"));
-                                messageJson.put("odds1", resultSet.getFloat("odds1"));
-                                messageJson.put("line1", resultSet.getFloat("line1"));
-                                messageJson.put("team2", resultSet.getStirng("team2"));
-                                messageJson.put("odds2", resultSet.getFloat("odds2"));
-                                messageJson.put("line2", resultSet.getFloat("line2"));
-                                messageJson.put("last_update", resultSet.getDate("last_update"));
-                                messageJson.put("game_start_time", resultSet.getDate("game_start_time"));
-                                messageJson.put("status", resultSet.getString("status"));
-                                messageJson.put("winner", resultSet.getString("winner"));
-                                messageJson.put("league", resultSet.getString("league"));
+                                messageJson.put("team1", gameResultSet.getStirng("team1"));
+                                messageJson.put("odds1", gameResultSet.getFloat("odds1"));
+                                messageJson.put("line1", gameResultSet.getFloat("line1"));
+                                messageJson.put("team2", gameResultSet.getStirng("team2"));
+                                messageJson.put("odds2", gameResultSet.getFloat("odds2"));
+                                messageJson.put("line2", gameResultSet.getFloat("line2"));
+                                messageJson.put("last_update", gameResultSet.getDate("last_update"));
+                                messageJson.put("game_start_time", gameResultSet.getDate("game_start_time"));
+                                messageJson.put("status", gameResultSet.getString("status"));
+                                messageJson.put("winner", gameResultSet.getString("winner"));
+                                messageJson.put("league", gameResultSet.getString("league"));
                             } else {
                                 throw new SQLException("Game not found for bet");
                             }
