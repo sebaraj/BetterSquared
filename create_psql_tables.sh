@@ -74,7 +74,7 @@ CREATE TABLE accounts (
       group_name VARCHAR(100) NOT NULL,
       username VARCHAR(50) NOT NULL,
       current_cash NUMERIC(10,3) NOT NULL,
-      group_role_id INTEGER NOT NULL,
+      group_role_id INTEGER NOT NULL DEFAULT 3,
       CONSTRAINT pk_accounts PRIMARY KEY (group_name, username),
       CONSTRAINT fk_group_name
           FOREIGN KEY (group_name)

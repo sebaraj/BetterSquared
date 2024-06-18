@@ -65,9 +65,6 @@ public class GroupHandler implements HttpHandler {
                         //System.out.println("matched");
                         group_name = rudGroupMatcher.group(1);
                         handleGetGroup(exchange, group_name, clientUsername);
-                    } else if (leaveGroupMatcher.matches()) {
-                        group_name = leaveGroupMatcher.group(1);
-                        handleLeaveGroup(exchange, group_name, clientUsername);
                     } else if (getUserListMatcher.matches()) {
                         group_name = getUserListMatcher.group(1);
                         handleGetUserList(exchange, group_name, clientUsername, page);
@@ -94,6 +91,9 @@ public class GroupHandler implements HttpHandler {
                     if (rudGroupMatcher.matches()) {
                         group_name = rudGroupMatcher.group(1);
                         handleUpdateGroup(exchange, group_name, clientUsername);
+                    } else if (leaveGroupMatcher.matches()) {
+                        group_name = leaveGroupMatcher.group(1);
+                        handleLeaveGroup(exchange, group_name, clientUsername);
                     } else if (makeAdminMatcher.matches()) {
                         group_name = makeAdminMatcher.group(1);
                         targetUsername = makeAdminMatcher.group(2);
@@ -121,6 +121,14 @@ public class GroupHandler implements HttpHandler {
         } catch (Exception e) {
             e.printStackTrace();
             exchange.sendResponseHeaders(500, -1);
+        }
+    }
+
+    private void sendResponse(HttpExchange exchange, int statusCode, String response) throws IOException {
+        exchange.sendResponseHeaders(statusCode, response.getBytes().length);
+        try (OutputStream outputStream = exchange.getResponseBody()) {
+            outputStream.write(response.getBytes());
+            outputStream.close();
         }
     }
 
@@ -215,10 +223,7 @@ public class GroupHandler implements HttpHandler {
                 }
                 dbConnection.commit();
                 String response = "Group formed successfully";
-                exchange.sendResponseHeaders(200, response.getBytes().length);
-                OutputStream outputStream = exchange.getResponseBody();
-                outputStream.write(response.getBytes());
-                outputStream.close();
+                sendResponse(exchange, 200, response);
             } catch (SQLException e) {
                 // Rollback transaction if an exception occurs
                 try {
@@ -258,24 +263,15 @@ public class GroupHandler implements HttpHandler {
 
             if (rowsAffected > 0) {
                 String message = group_name + " successfully deleted.";
-                exchange.sendResponseHeaders(200, message.getBytes().length);
-                OutputStream output = exchange.getResponseBody();
-                output.write(message.getBytes());
-                output.close();
+                sendResponse(exchange, 200, message);
             } else {
                 String message = "Group not found.";
-                exchange.sendResponseHeaders(404, message.getBytes().length); // Not Found
-                OutputStream output = exchange.getResponseBody();
-                output.write(message.getBytes());
-                output.close();
+                sendResponse(exchange, 404, message);
             }
         } catch (SQLException e) {
             e.printStackTrace();
             String response = "Delete group failed.";
-            exchange.sendResponseHeaders(500, response.getBytes().length);
-            OutputStream outputStream = exchange.getResponseBody();
-            outputStream.write(response.getBytes());
-            outputStream.close();
+            sendResponse(exchange, 500, response);
         }
     }
 
@@ -284,11 +280,61 @@ public class GroupHandler implements HttpHandler {
     }
 
     private void handleJoinGroup(HttpExchange exchange, String group_name, String username) { //throws IOException {
-        System.out.println("Not done");
+        //System.out.println("Not done");
+        try {
+            roleInGroup(username, group_name);
+            // If no exception is thrown, the user is already in the group
+            String response = "Join group failed. Already in group.";
+            sendResponse(exchange, 500, response);
+        } catch (SQLException e) {
+            String insertSQL = "INSERT INTO accounts (username, group_name) VALUES (?, ?)";
+            try (PreparedStatement preparedStatement = dbConnection.prepareStatement(insertSQL)) {
+                preparedStatement.setString(1, username);
+                preparedStatement.setString(2, group_name);
+                preparedStatement.executeUpdate();
+            }
+
+            System.out.println("User: " + username + " created account in group " + group_name +".");
+            // Send a response
+            String response = "User added to group successfully";
+            sendResponse(exchange, 200, response);
+        }
+
     }
 
     private void handleLeaveGroup(HttpExchange exchange, String group_name, String username) { //throws IOException {
-        System.out.println("Not done");
+        try {
+            int role = roleInGroup(username, group_name);
+            if (role == 1) {
+                String response = "Group creator cannot leave group. Try deleting instead.";
+                sendResponse(exchange, 500, response);
+                return;
+            }
+            String delete = "DELETE FROM accounts WHERE username = ? AND group_name = ?";
+            try (PreparedStatement statement = dbConnection.prepareStatement(delete)) {
+                statement.setString(1, username);
+                statement.setString(2, group_name);
+                int rowsAffected = statement.executeUpdate();
+
+                if (rowsAffected > 0) {
+                    String message = username + " was successfully removed from " + group_name + ".";
+                    sendResponse(exchange, 200, message);
+                } else {
+                    String message = "User not in group.";
+                    sendResponse(exchange, 404, message);
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+                String response = "Delete group failed.";
+                sendResponse(exchange, 500, response);
+            }
+
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            String response = "Leave group failed. Not in group.";
+            sendResponse(exchange, 500, response);
+        }
     }
 
     private void handleGetLeaderboard(HttpExchange exchange, String group_name, String username, int page) { //throws IOException {
