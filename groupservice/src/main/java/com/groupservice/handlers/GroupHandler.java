@@ -3,6 +3,7 @@ package com.groupservice.server;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.Headers;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import java.io.IOException;
 import java.io.InputStream;
@@ -346,24 +347,143 @@ public class GroupHandler implements HttpHandler {
     }
 
     private void handleMakeAdmin(HttpExchange exchange, String group_name, String username, String targetUsername) { //throws IOException {
-        System.out.println("Not done");
+        try {
+            int role = roleInGroup(username, group_name);
+            if (role > 1) {
+                String response = "Only group creators promote user to admin.";
+                sendResponse(exchange, 403, response);
+                return;
+            }
+
+            int targetRole = roleInGroup(targetUsername, group_name);
+            if (targetRole == 1) {
+                String response = "Cannot demote group creator to admin.";
+                sendResponse(exchange, 403, response);
+                return;
+            } else if (targetRole == 2) {
+                String response = "Target user already admin.";
+                sendResponse(exchange, 409, response);
+                return;
+            }
+            int adminRole = 2;
+            String update = "UPDATE accounts SET group_role_id = ? WHERE username = ? AND group_name = ?";
+            try (PreparedStatement statement = dbConnection.prepareStatement(update)) {
+                statement.setInt(1, adminRole);
+                statement.setString(2, targetUsername);
+                statement.setString(3, group_name);
+                int rowsAffected = statement.executeUpdate();
+
+                if (rowsAffected > 0) {
+                    String message = targetUsername + " was successfully promoted to admin in " + group_name + ".";
+                    sendResponse(exchange, 200, message);
+                } else {
+                    String message = "Target user not in group.";
+                    sendResponse(exchange, 404, message);
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+                String response = "Update "+targetUsername + " with admin role failed.";
+                sendResponse(exchange, 500, response);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            String response = "Make " + targetUsername + " admine failed. Not in group";
+            sendResponse(exchange, 500, response);
+        }
     }
 
-    private void handleGetBetCash(HttpExchange exchange, String group_name, String clientUsername, String targetUsername) { //throws IOException {
-        System.out.println("Not done");
+    private void handleGetBetCash(HttpExchange exchange, String group_name, String username, String targetUsername) { //throws IOException {
+        try {
+            if (roleInGroup(username, group_name) > 3) {
+                String response = "Only group members can access user info.";
+                sendResponse(exchange, 403, response);
+                return;
+            }
+
+            JSONArray jsonArray = new JSONArray();
+            String accountQuery = "SELECT * FROM accounts WHERE username = ? AND group_name = ?";
+            try (PreparedStatement accountStatement = dbConnection.prepareStatement(accountQuery)) {
+                accountStatement.setString(1, targetUsername);
+                accountStatement.setString(2, groupName);
+                try (ResultSet resultSet = accountStatement.executeQuery()) {
+                    if (resultSet.next()) {
+                        JSONObject accountJson = new JSONObject();
+                        accountJson.put("username", resultSet.getString("username"));
+                        accountJson.put("group_name", resultSet.getString("group_name"));
+                        accountJson.put("group_role_id", resultSet.getInt("group_role_id"));
+                        accountJson.put("current_cash", resultSet.getFloat("current_cash"));
+                        jsonArray.put(accountJson);
+                    } else {
+                        String response = "Target user not found in group.";
+                        sendResponse(exchange, 404, response); // 404 Not Found
+                        return;
+                    }
+                }
+            }
+
+            String betQuery = "SELECT * FROM bets WHERE username = ? AND group_name = ?";
+            try (PreparedStatement betStatement = dbConnection.prepareStatement(betQuery)) {
+                betStatement.setString(1, targetUsername);
+                betStatement.setString(2, groupName);
+                try (ResultSet resultSet = betStatement.executeQuery()) {
+                    while (resultSet.next()) {
+                        // Process the results
+                        JSONObject messageJson = new JSONObject();
+                        messageJson.put("type", resultSet.getString("type"));
+                        messageJson.put("wagered", resultSet.getFloat("wagered"));
+                        messageJson.put("amount_to_win", resultSet.getFloat("amount_to_win"));
+                        messageJson.put("picked_winner", resultSet.getString("picked_winner"));
+                        messageJson.put("time_placed", resultSet.getDate("time_placed"));
+                        messageJson.put("been_distributed", resultSet.getBoolean("current_cash"));
+                        messageJson.put("is_parlay", resultSet.getBoolean("is_parlay"));
+                        // get game info and append
+                        String gameQuery = "SELECT * FROM games WHERE game_id = ?";
+                        try (PreparedStatement gameStatement = dbConnection.prepareStatement(gameQuery)) {
+                            statement.setInt(1, resultSet.get("game_id"));
+                            ResultSet gameResultSet = gameStatement.executeQuery()
+                            if (gameResultSet.next()) {
+                                messageJson.put("team1", resultSet.getStirng("team1"));
+                                messageJson.put("odds1", resultSet.getFloat("odds1"));
+                                messageJson.put("line1", resultSet.getFloat("line1"));
+                                messageJson.put("team2", resultSet.getStirng("team2"));
+                                messageJson.put("odds2", resultSet.getFloat("odds2"));
+                                messageJson.put("line2", resultSet.getFloat("line2"));
+                                messageJson.put("last_update", resultSet.getDate("last_update"));
+                                messageJson.put("game_start_time", resultSet.getDate("game_start_time"));
+                                messageJson.put("status", resultSet.getString("status"));
+                                messageJson.put("winner", resultSet.getString("winner"));
+                                messageJson.put("league", resultSet.getString("league"));
+                            } else {
+                                throw new SQLException("Game not found for bet");
+                            }
+                        }
+                        jsonArray.put(messageJson);
+
+                    }
+                    // convert array to String and
+
+                    String response = jsonArray.toString();
+                    sendResponse(exchange, 200, response);
+                }
+            } catch (SQLException e) {
+                System.out.println("No bets found for user " + targetUsername + " in group " + group_name + ".");
+                // Handle the exception
+            }
+
+            String message = messageJson.toString();
+            exchange.sendResponseHeaders(200, message.getBytes().length);
+            OutputStream output = exchange.getResponseBody();
+            output.write(message.getBytes());
+            output.close();
+                //System.out.println("Group name: " + group_name);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            String response = "Get target user bet and cash failed.";
+            sendResponse(exchange, 500, response);
+        }
     }
 
 
-//   Modify this to create new group
-//    private void insertUserIntoDatabase(String username, String email, String password, int role) throws SQLException {
-//        String insertSQL = "INSERT INTO users (username, email, password, role_id) VALUES (?, ?, ?, ?)";
-//        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(insertSQL)) {
-//            preparedStatement.setString(1, username);
-//            preparedStatement.setString(2, email);
-//            preparedStatement.setString(3, password);
-//            preparedStatement.setInt(4, role);
-//            preparedStatement.executeUpdate();
-//        }
-//    }
 
 }
