@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: userbet-configmap
+  name: bet-configmap
 data:
   BET_DB_HOST: "host.minikube.internal"
   BET_DB_USER: "authdbuser"

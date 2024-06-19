@@ -1,4 +1,4 @@
-package com.userbetservice.server;
+package com.betservice.server;
 
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.locks.Condition;

@@ -24,6 +24,8 @@ public class GroupsHandler implements HttpHandler {
 
     private java.sql.Connection dbConnection;
     //private String clientUsername;
+    private Pattern groupsPattern = Pattern.compile("/groups"); // get all groups that belong to user that called it
+    private Pattern searchPattern = Pattern.compile("/groups/search"); // get all groups that fit search parameters
 
     public GroupsHandler(java.sql.Connection dbConnection) {
         //this.clientUsername = clientUsername;
@@ -33,7 +35,7 @@ public class GroupsHandler implements HttpHandler {
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         try {
-            String clientUsername; // = "bryans"; //  (String) exchange.getAttribute("username");
+            String clientUsername = ""; // = "bryans"; //  (String) exchange.getAttribute("username");
             Headers requestHeaders = exchange.getRequestHeaders();
             if (requestHeaders.containsKey("username")) {
                 clientUsername = requestHeaders.getFirst("username");
@@ -41,6 +43,8 @@ public class GroupsHandler implements HttpHandler {
             int page = 0;
             URI requestUri = exchange.getRequestURI();
             String path = requestUri.getPath();
+            Matcher groupsMatcher = groupsPattern.matcher(path);
+            Matcher searchMatcher = searchPattern.matcher(path);
             String query = requestUri.getQuery();
             Map<String, String> queryParams = parseQueryParams(query);
             String pageStr = queryParams.getOrDefault("page", "-1");
@@ -48,14 +52,22 @@ public class GroupsHandler implements HttpHandler {
             String group_name = queryParams.getOrDefault("name", "");
 
             if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
-                // if pageSTR is -1 and group_name not empty
-                if (page > -1 && !group_name.isEmpty()) {
-                    handleGetGroupsByName(exchange, group_name, page);
+                if (groupsMatcher.matches()) {
+                    handlerGetAccountsOfUser(exchange, clientUsername);
                     return;
-                } else if (page > -1 && group_name.isEmpty()) {
-                    handleGetGroupsWithoutName(exchange, page);
-                    return;
+                } else if (searchMatcher.matches()) {
+                    if (page > -1 && !"".equals(group_name)) {
+                        System.out.println("Using search with page/name");
+                        handleGetGroupsByName(exchange, group_name, page);
+                        return;
+                    } else if (page > -1 && group_name.isEmpty()) {
+                        System.out.println("Using search with page");
+                        handleGetGroupsWithoutName(exchange, page);
+                        return;
+                    }
                 }
+                // if pageSTR is -1 and group_name not empty
+
             }
             String response = "Method not allowed";
             sendResponse(exchange, 405, response);
@@ -103,6 +115,46 @@ public class GroupsHandler implements HttpHandler {
                     throw new SQLException("Group not found");
                 }
             }
+        }
+    }
+
+    private void handlerGetAccountsOfUser(HttpExchange exchange, String username) throws IOException {
+        try {
+            String query = "SELECT * FROM accounts WHERE username = ?"; // get all groups with start with the substring name
+            try (PreparedStatement statement = dbConnection.prepareStatement(query)) {
+                statement.setString(1, username);
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    JSONArray groupsArray = new JSONArray();
+                    while (resultSet.next()) {
+                        JSONObject groupJson = new JSONObject();
+                        groupJson.put("group_name", resultSet.getString("group_name"));
+                        groupJson.put("current_cash", resultSet.getFloat("current_cash"));
+                        String groupQuery = "SELECT * FROM groups WHERE group_name = ?";
+                        try (PreparedStatement groupStatement = dbConnection.prepareStatement(groupQuery)) {
+                            groupStatement.setString(1, resultSet.getString("group_name"));
+                            try (ResultSet groupResultSet = groupStatement.executeQuery()) {
+                                if (groupResultSet.next()) {
+                                    groupJson.put("start_date",  groupResultSet.getDate("start_date"));
+                                    groupJson.put("end_date",  groupResultSet.getDate("end_date"));
+                                    groupJson.put("is_active",  groupResultSet.getBoolean("is_active"));
+                                    groupJson.put("starting_cash",  groupResultSet.getFloat("starting_cash"));
+                                    if (!groupResultSet.getBoolean("has_been_deleted")) {
+                                        groupsArray.put(groupJson);
+                                    }
+                                } else {
+                                    throw new SQLException("Group not found");
+                                }
+                            }
+                        }
+
+                    }
+                    String response = groupsArray.toString();
+                    sendResponse(exchange, 200, response);
+                }
+            }
+        } catch (SQLException e) {
+            String response = "Could not get accounts of user.";
+            sendResponse(exchange, 404, response);
         }
     }
 
