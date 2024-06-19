@@ -81,7 +81,7 @@ public class GroupHandler implements HttpHandler {
 
         } catch (Exception e) {
             e.printStackTrace();
-            String errorResponse = "{\"error\": \"Reset password failed.\"}";
+            String errorResponse = "{\"error\": \"Group service response failed.\"}";
             exchange.getResponseHeaders().set("Content-Type", "application/json; utf-8");
             exchange.sendResponseHeaders(500, errorResponse.getBytes(StandardCharsets.UTF_8).length);
 

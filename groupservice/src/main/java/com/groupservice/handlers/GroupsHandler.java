@@ -45,7 +45,7 @@ public class GroupsHandler implements HttpHandler {
             Map<String, String> queryParams = parseQueryParams(query);
             String pageStr = queryParams.getOrDefault("page", "-1");
             page = Integer.parseInt(pageStr);
-            String group_name = queryParams.getOrDefault("group-name", "");
+            String group_name = queryParams.getOrDefault("name", "");
 
             if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
                 // if pageSTR is -1 and group_name not empty

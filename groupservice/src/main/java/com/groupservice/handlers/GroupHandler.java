@@ -25,13 +25,14 @@ public class GroupHandler implements HttpHandler {
     private Connection dbConnection;
     //private String clientUsername;
 
-    private Pattern createGroupPattern = Pattern.compile("/group"); // used to create group w/o groupname
-    private Pattern rudGroupPattern = Pattern.compile("/group/([^/]+)/"); // used for update, get, delete group
-    private Pattern joinGroupPattern = Pattern.compile("/group/([^/]+)/join"); // group/group_name/join
-    private Pattern leaveGroupPattern = Pattern.compile("/group/([^/]+)/leave"); // group/group_name/leave
-    private Pattern getUserListPattern = Pattern.compile("/group/([^/]+)/users"); // group/group_name/users?page=n
-    private Pattern makeAdminPattern = Pattern.compile("/group/([^/]+)/admin/([^/]+)"); // group/group_name/admin/username
-    private Pattern getUserBetCashPattern = Pattern.compile("/group/([^/]+)/user/([^/]+)"); // group/group_name/user/username
+
+    private Pattern createGroupPattern = Pattern.compile("/group"); // POST. used to create group w/o groupname
+    private Pattern rudGroupPattern = Pattern.compile("/group/([^/]+)"); // GET, PUT, DELETE. used for update, get, delete group
+    private Pattern joinGroupPattern = Pattern.compile("/group/([^/]+)/join"); // POST. group/group_name/join
+    private Pattern leaveGroupPattern = Pattern.compile("/group/([^/]+)/leave"); // DELETE. group/group_name/leave
+    private Pattern getUserListPattern = Pattern.compile("/group/([^/]+)/users"); // GET. group/group_name/users?page=n
+    private Pattern makeAdminPattern = Pattern.compile("/group/([^/]+)/admin"); // PUT. group/group_name/admin/ (username in body) - CHECK
+    private Pattern getUserBetCashPattern = Pattern.compile("/group/([^/]+)/user/([^/]+)"); // GET. group/group_name/user/username
 
     public GroupHandler(Connection dbConnection) {
         //this.clientUsername = clientUsername;
@@ -65,6 +66,7 @@ public class GroupHandler implements HttpHandler {
                     if (rudGroupMatcher.matches()) {
                         //System.out.println("matched");
                         group_name = rudGroupMatcher.group(1);
+                        System.out.println("group_name: " + group_name);
                         handleGetGroup(exchange, group_name, clientUsername);
                     } else if (getUserListMatcher.matches()) {
                         group_name = getUserListMatcher.group(1);
@@ -73,21 +75,25 @@ public class GroupHandler implements HttpHandler {
                         Map<String, String> queryParams = parseQueryParams(query);
                         String pageStr = queryParams.getOrDefault("page", "0");
                         page = Integer.parseInt(pageStr);
+                        System.out.println("group_name: " + group_name + ". page: " + pageStr);
                         handleGetUserList(exchange, group_name, clientUsername, page);
                     } else if (getUserBetCashMatcher.matches()) {
                         group_name = getUserBetCashMatcher.group(1);
                         targetUsername = getUserBetCashMatcher.group(2);
-                        handleGetBetCash(exchange, clientUsername, group_name, targetUsername);
+                        System.out.println("group_name: " + group_name+". targetUsername: " + targetUsername);
+                        handleGetBetCash(exchange, group_name, clientUsername, targetUsername);
                     } else {
-                        //System.out.println("no match. reached the end of get switch");
+                        System.out.println("no match. reached the end of get switch");
                         exchange.sendResponseHeaders(405, -1);
                     }
                     break;
                 case "POST":
                     if (createGroupMatcher.matches()) {
+                        System.out.println("went into create group");
                         handleCreateGroup(exchange, clientUsername);
                     } else if (joinGroupMatcher.matches()) {
                         group_name = joinGroupMatcher.group(1);
+                        System.out.println("group_name: " + group_name);
                         handleJoinGroup(exchange, group_name, clientUsername);
                     } else {
                         exchange.sendResponseHeaders(405, -1); // Method Not Allowed
@@ -96,14 +102,13 @@ public class GroupHandler implements HttpHandler {
                 case "PUT":
                     if (rudGroupMatcher.matches()) {
                         group_name = rudGroupMatcher.group(1);
+                        System.out.println("group_name: " + group_name);
                         handleUpdateGroup(exchange, group_name, clientUsername);
-                    } else if (leaveGroupMatcher.matches()) {
-                        group_name = leaveGroupMatcher.group(1);
-                        handleLeaveGroup(exchange, group_name, clientUsername);
                     } else if (makeAdminMatcher.matches()) {
                         group_name = makeAdminMatcher.group(1);
-                        targetUsername = makeAdminMatcher.group(2);
-                        handleMakeAdmin(exchange, group_name, clientUsername, targetUsername);
+                        //targetUsername = makeAdminMatcher.group(2);
+                        System.out.println("group_name: " + group_name+".");
+                        handleMakeAdmin(exchange, group_name, clientUsername);
                     } else {
                         exchange.sendResponseHeaders(405, -1);
                     }
@@ -111,9 +116,11 @@ public class GroupHandler implements HttpHandler {
                 case "DELETE":
                     if (rudGroupMatcher.matches()) {
                         group_name = rudGroupMatcher.group(1);
+                        System.out.println("group_name: " + group_name);
                         handleDeleteGroup(exchange, group_name, clientUsername);
                     } else if (leaveGroupMatcher.matches()) {
                         group_name = leaveGroupMatcher.group(1);
+                        System.out.println("group_name: " + group_name);
                         handleLeaveGroup(exchange, group_name, clientUsername);
                     } else {
                         //System.out.println("no match. reached the end of get switch pt 4");
@@ -252,6 +259,7 @@ public class GroupHandler implements HttpHandler {
             } catch (SQLException e) {
                 // Rollback transaction if an exception occurs
                 try {
+                    exchange.sendResponseHeaders(500, -1);
                     if (dbConnection != null) {
                         dbConnection.rollback();
                     }
@@ -323,25 +331,26 @@ public class GroupHandler implements HttpHandler {
         try {
             if (has_been_deleted(group_name)) {
                 exchange.sendResponseHeaders(410, -1);
-                return;
+                throw new SQLException("Group " + group_name + " already deleted.");
             }
             if (roleInGroup(username, group_name) > 2) {
                 String response = "Need to be group creator or admin.";
                 sendResponse(exchange, 403, response);
-                return;
+                throw new SQLException("Need to be group creator or admin");
             }
             InputStream inputStream = exchange.getRequestBody();
             String requestBody = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
             System.out.println("Received JSON payload: " + requestBody);
 
             JSONObject jsonObject = new JSONObject(requestBody);
-            String updated_group_name = jsonObject.getString("group_name");
+            //String updated_group_name = jsonObject.getString("group_name");
             Date updated_start_date = Date.valueOf(jsonObject.getString("start_date"));
             Date updated_end_date = Date.valueOf(jsonObject.getString("end_date"));
             boolean updated_is_active = updated_start_date.before(new Date(System.currentTimeMillis()));
             float updated_starting_cash = (float) jsonObject.getDouble("starting_cash");
             boolean isActive;
-            Date old_start_date;
+            Date old_start_date, old_end_date;
+            System.out.println("Executing initial query for group update");
             // pull data from db. if is active, can only change the group name, end date. if not active, can change everything.
             String query = "SELECT * FROM groups WHERE group_name = ?";
             try (PreparedStatement statement = dbConnection.prepareStatement(query)) {
@@ -349,56 +358,70 @@ public class GroupHandler implements HttpHandler {
                 try (ResultSet resultSet = statement.executeQuery()) {
                     if (resultSet.next()) {
                         isActive =  resultSet.getBoolean("is_active");
-                        old_start_date = Date.valueOf(resultSet.getString("start_date"));
+                        old_start_date = resultSet.getDate("start_date");
+                        old_end_date = resultSet.getDate("end_date");
                     } else {
                         throw new SQLException("Group not found");
                     }
                 }
             }
-
+            System.out.println("Executing update for group update");
+            Date current_time = new Date(System.currentTimeMillis());
             if (isActive) {
-                if (old_start_date.before(updated_end_date)) {
-                    String message = "Group is already active, so cannot change the start date. End date needs to be after start date.";
+                if (updated_end_date.before(current_time)) {
+                    String message = "Group is already active.End date needs to set after current time.";
                     sendResponse(exchange, 400, message);
                     return;
                 }
-                String update = "UPDATE groups SET end_date = ? AND group_name = ? WHERE username = ? AND group_name = ?";
+                String update = "UPDATE groups SET end_date = ? WHERE group_name = ?";
                 try (PreparedStatement statement = dbConnection.prepareStatement(update)) {
                     statement.setDate(1, updated_end_date);
-                    statement.setString(2, updated_group_name);
-                    statement.setString(3, username);
-                    statement.setString(4, group_name);
+                    statement.setString(2, group_name);
                     int rowsAffected = statement.executeUpdate();
 
                     if (rowsAffected > 0) {
-                        String message = updated_group_name + " was successfully updated. Since the group is active, only end_date & name can be changed.";
+                        String message = group_name + " was successfully updated. Since the group is active, only end_date.";
                         sendResponse(exchange, 200, message);
+                        return;
                     } else {
                         String message = "New group name already taken by another group.";
                         sendResponse(exchange, 404, message);
+                        return;
                     }
                 }
-            } else {
-                String update = "UPDATE groups SET start_date AND end_date = ? AND group_name = ? AND starting_cash = ? AND is_active = ? WHERE username = ? AND group_name = ?";
+            } else if (!isActive && !old_end_date.before(current_time)) {
+                String update = "UPDATE groups SET start_date = ?, end_date = ?, starting_cash = ?, is_active = ? WHERE group_name = ?";
                 try (PreparedStatement statement = dbConnection.prepareStatement(update)) {
                     statement.setDate(1, updated_start_date);
                     statement.setDate(2, updated_end_date);
-                    statement.setString(3, updated_group_name);
-                    statement.setFloat(4, updated_starting_cash);
-                    statement.setString(5, updated_group_name);
-                    statement.setBoolean(6, updated_is_active);
-                    statement.setString(7, username);
-                    statement.setString(8, group_name);
+                    statement.setFloat(3, updated_starting_cash);
+                    statement.setBoolean(4, updated_is_active);
+                    statement.setString(5, group_name);
                     int rowsAffected = statement.executeUpdate();
 
-                    if (rowsAffected > 0) {
-                        String message = updated_group_name + " was successfully updated.";
-                        sendResponse(exchange, 200, message);
-                    } else {
+                    if (rowsAffected == 0) {
                         String message = "Error updating group.";
                         sendResponse(exchange, 404, message);
                     }
+
+                    String updateAccounts = "UPDATE accounts SET current_cash = ? WHERE group_name = ?";
+                    try (PreparedStatement accountStatement = dbConnection.prepareStatement(updateAccounts)) {
+                        accountStatement.setFloat(1, updated_starting_cash);
+                        accountStatement.setString(2, group_name);
+                        int rowsAffectedAcc = accountStatement.executeUpdate();
+                        if (rowsAffectedAcc == 0) {
+                            String message = "Error updating group.";
+                            sendResponse(exchange, 404, message);
+                        } else {
+                            String message = group_name + " was successfully updated.";
+                            sendResponse(exchange, 200, message);
+                        }
+                    }
+
                 }
+            } else {
+                String message = "Group is no longer active";
+                sendResponse(exchange, 404, message);
             }
 
 
@@ -483,7 +506,7 @@ public class GroupHandler implements HttpHandler {
                 return;
             }
             JSONArray jsonArray = new JSONArray();
-            String betQuery  = "SELECT * FROM groups WHERE group_name = ? ORDER BY group_name LIMIT 50 OFFSET ? * 50";
+            String betQuery  = "SELECT * FROM accounts WHERE group_name = ? ORDER BY group_name LIMIT 50 OFFSET ? * 50";
             try (PreparedStatement betStatement = dbConnection.prepareStatement(betQuery)) {
                 betStatement.setString(1, group_name);
                 betStatement.setInt(2, page);
@@ -516,21 +539,31 @@ public class GroupHandler implements HttpHandler {
         }
     }
 
-    private void handleMakeAdmin(HttpExchange exchange, String group_name, String username, String targetUsername) throws IOException, SQLException { //throws IOException {
+    private void handleMakeAdmin(HttpExchange exchange, String group_name, String username) throws IOException, SQLException { //throws IOException {
         // check if group is deleted
+        String targetUsername = "";
         try {
             if (has_been_deleted(group_name)) {
                 exchange.sendResponseHeaders(410, -1);
-                return;
+                throw new SQLException("Group has been deleted");
             }
             int role = roleInGroup(username, group_name);
             if (role > 1) {
                 String response = "Only group creators promote user to admin.";
                 sendResponse(exchange, 403, response);
-                return;
+                throw new SQLException("Not authorized");
             }
+            // read body to get targetUsername
+            InputStream inputStream = exchange.getRequestBody();
+            String requestBody = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+            System.out.println("Received JSON payload: " + requestBody);
+
+            JSONObject jsonObject = new JSONObject(requestBody);
+            targetUsername = jsonObject.getString("admin");
+            System.out.println(targetUsername);
 
             int targetRole = roleInGroup(targetUsername, group_name);
+            System.out.println("Role: " + targetRole);
             if (targetRole == 1) {
                 String response = "Cannot demote group creator to admin.";
                 sendResponse(exchange, 403, response);
