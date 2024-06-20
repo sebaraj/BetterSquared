@@ -21,6 +21,8 @@ kubectl apply -f ./emailservice/manifests/
 
 kubectl apply -f ./groupservice/manifests/
 
+kubectl apply -f ./betservice/manifests/
+
 sudo kubectl apply -f ./gatewayservice/manifests/ingress.yaml
 
 sudo minikube tunnel

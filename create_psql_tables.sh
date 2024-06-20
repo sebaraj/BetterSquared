@@ -11,9 +11,9 @@ SQL_COMMANDS=$(cat <<EOF
 -- Your SQL commands here
 CREATE TABLE users (username VARCHAR(50) PRIMARY KEY, email VARCHAR(100) NOT NULL UNIQUE, password VARCHAR(100) NOT NULL, created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, last_accessed_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE bet_types (type VARCHAR(20) PRIMARY KEY);
-INSERT INTO bet_types (type) VALUES ('h2h'), ('spread');
+INSERT INTO bet_types (type) VALUES ('h2h');
 CREATE TABLE statuses (status VARCHAR(20) PRIMARY KEY);
-INSERT into statuses (status) VALUES ('active'), ('playing'), ('settled');
+INSERT into statuses (status) VALUES ('upcoming'), ('playing'), ('settled');
 CREATE TABLE leagues (
       name VARCHAR(50) PRIMARY KEY,
       subleague_of VARCHAR(50),

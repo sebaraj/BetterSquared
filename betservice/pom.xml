@@ -3,7 +3,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.userbetservice</groupId>
+  <groupId>com.betservice</groupId>
   <artifactId>Server</artifactId>
   <version>1.0-SNAPSHOT</version>
   <packaging>jar</packaging>
@@ -78,7 +78,7 @@
           <source>1.8</source>
           <target>1.8</target>
           <includes>
-            <include>**/handlers/ViewBetHandler.java</include>
+            <include>**/handlers/BetHandler.java</include>
             <include>**/PausableThreadPoolExecutor.java</include>
             <include>**/Server.java</include>
           </includes>
@@ -95,7 +95,7 @@
           </descriptorRefs>
           <archive>
             <manifest>
-              <mainClass>com.userbetservice.server.Server</mainClass> <!-- Replace with your main class -->
+              <mainClass>com.betservice.server.Server</mainClass> <!-- Replace with your main class -->
             </manifest>
           </archive>
         </configuration>

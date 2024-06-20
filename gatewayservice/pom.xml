@@ -62,6 +62,7 @@
           <includes>
             <!-- other java files here -->
             <include>**/auth/ValidateRequest.java</include>
+            <include>**/handlers/BetHandler.java</include>
             <include>**/handlers/GroupHandler.java</include>
             <include>**/handlers/TestValidateHandler.java</include>
             <include>**/handlers/ForgotPasswordHandler.java</include>

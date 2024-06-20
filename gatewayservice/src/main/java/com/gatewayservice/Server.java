@@ -36,6 +36,7 @@ public class Server {
             server.createContext("/testvalidate", new TestValidateHandler());
             server.createContext("/group", new GroupHandler());
             server.createContext("/groups", new GroupHandler());
+            server.createContext("/bet", new BetHandler());
 
             // New pausable thread pool executor
             PausableThreadPoolExecutor executor = new PausableThreadPoolExecutor(Integer.parseInt(System.getenv("GATEWAY_THREAD_POOL_CORE_SIZE")), Integer.parseInt(System.getenv("GATEWAY_THREAD_POOL_MAX_SIZE")), Integer.parseInt(System.getenv("GATEWAY_THREAD_POOL_KEEP_ALIVE")), TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
