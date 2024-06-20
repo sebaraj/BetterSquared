@@ -98,7 +98,7 @@ public class BetHandler implements HttpHandler {
                 case "POST":
                     if (buyBetMatcher.matches()) {
                         group_name = buyBetMatcher.group(1);
-                        handleBuyBet(exchange, group_name);
+                        handleBuyBet(exchange, group_name, clientUsername);
                     } else {
                         exchange.sendResponseHeaders(405, -1); // Method Not Allowed
                     }
@@ -106,7 +106,7 @@ public class BetHandler implements HttpHandler {
                 case "DELETE":
                     if (sellBetMatcher.matches()) {
                         group_name = sellBetMatcher.group(1);
-                        handleSellBet(exchange, group_name, page);
+                        handleSellBet(exchange, group_name, clientUsername);
                     } else {
                         //System.out.println("no match. reached the end of get switch pt 4");
                         exchange.sendResponseHeaders(405, -1);
@@ -254,32 +254,34 @@ public class BetHandler implements HttpHandler {
 
     private void handleGetGamesByID(HttpExchange exchange, String group_name, String league_name, int game_id) throws IOException, SQLException {
         // check if group has been deleted
-        if (has_been_deleted(group_name)) {
-            exchange.sendResponseHeaders(410, -1);
-            return;
-        }
-        JSONObject messageJson = new JSONObject();
-        System.out.println("Group name: " + group_name+". Game ID: " + game_id);
-        String query = "SELECT * FROM games WHERE game_id = ?";
-        try (PreparedStatement statement = dbConnection.prepareStatement(query)) {
-            statement.setInt(1, game_id);
-            try (ResultSet resultSet = statement.executeQuery()) {
-                if (resultSet.next()) {
-                    messageJson.put("game_id", resultSet.getInt("game_id"));
-                    messageJson.put("team1", resultSet.getString("team1"));
-                    messageJson.put("odds1", resultSet.getFloat("odds1"));
-                    messageJson.put("line1", resultSet.getFloat("line1"));
-                    messageJson.put("team2", resultSet.getString("team2"));
-                    messageJson.put("odds2", resultSet.getFloat("odds2"));
-                    messageJson.put("line2", resultSet.getFloat("line2"));
-                    messageJson.put("last_update", resultSet.getDate("last_update"));
-                    messageJson.put("game_start_time", resultSet.getDate("game_start_time"));
-                    messageJson.put("status", resultSet.getString("status"));
-                    messageJson.put("winner", resultSet.getString("winner"));
-                    messageJson.put("league", resultSet.getString("league"));
+        try {
+            if (has_been_deleted(group_name)) {
+                exchange.sendResponseHeaders(410, -1);
+                return;
+            }
+            JSONObject messageJson = new JSONObject();
+            System.out.println("Group name: " + group_name + ". Game ID: " + game_id);
+            String query = "SELECT * FROM games WHERE game_id = ?";
+            try (PreparedStatement statement = dbConnection.prepareStatement(query)) {
+                statement.setInt(1, game_id);
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    if (resultSet.next()) {
+                        messageJson.put("game_id", resultSet.getInt("game_id"));
+                        messageJson.put("team1", resultSet.getString("team1"));
+                        messageJson.put("odds1", resultSet.getFloat("odds1"));
+                        messageJson.put("line1", resultSet.getFloat("line1"));
+                        messageJson.put("team2", resultSet.getString("team2"));
+                        messageJson.put("odds2", resultSet.getFloat("odds2"));
+                        messageJson.put("line2", resultSet.getFloat("line2"));
+                        messageJson.put("last_update", resultSet.getDate("last_update"));
+                        messageJson.put("game_start_time", resultSet.getDate("game_start_time"));
+                        messageJson.put("status", resultSet.getString("status"));
+                        messageJson.put("winner", resultSet.getString("winner"));
+                        messageJson.put("league", resultSet.getString("league"));
+                    }
+                    String response = messageJson.toString();
+                    sendResponse(exchange, 200, response);
                 }
-                String response = messageJson.toString();
-                sendResponse(exchange, 200, response);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -345,6 +347,7 @@ public class BetHandler implements HttpHandler {
                 }
                 String response = jsonArray.toString();
                 sendResponse(exchange, 200, response);
+            }
         } catch (SQLException e) {
             e.printStackTrace();
             String response = "Get games in league failed.";
@@ -353,4 +356,205 @@ public class BetHandler implements HttpHandler {
     }
 
 
+    private void handleBuyBet(HttpExchange exchange, String group_name, String username) throws IOException, SQLException {
+        // check if group has been deleted
+        try {
+            if (has_been_deleted(group_name)) {
+                exchange.sendResponseHeaders(410, -1);
+                return;
+            }
+            roleInGroup(username, group_name);
+            InputStream inputStream = exchange.getRequestBody();
+            String requestBody = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+            System.out.println("Received JSON payload: " + requestBody);
+
+            JSONObject jsonObject = new JSONObject(requestBody);
+            //String updated_group_name = jsonObject.getString("group_name");
+            int game_id = jsonObject.getInt("game_id");
+            String bet_type = jsonObject.getString("type");
+            float wagered = (float) jsonObject.getDouble("wagered");
+            String picked_winner = jsonObject.getString("picked_winner");
+            boolean isParlay = false, been_distributed = false;
+            String team1 = "", team2 = "";
+            float odds1 = 0.0f, odds2 = 0.0f;
+            float line1 = 0.0f, line2 = 0.0f;
+            String gameStatus = "";
+            // atomically do the following
+            dbConnection.setAutoCommit(false);
+            try {
+                // Pull game info from games by game_id
+                try (PreparedStatement gameStatement = dbConnection.prepareStatement(
+                        "SELECT * FROM games WHERE game_id = ? FOR UPDATE")) {
+                    gameStatement.setInt(1, game_id);
+                    try (ResultSet gameResultSet = gameStatement.executeQuery()) {
+                        if (gameResultSet.next()) {
+                            gameStatus = gameResultSet.getString("status");
+                            odds1 = gameResultSet.getFloat("odds1");
+                            odds2 = gameResultSet.getFloat("odds2");
+                            line1 = gameResultSet.getFloat("line1");
+                            line2 = gameResultSet.getFloat("line2");
+                            team1 = gameResultSet.getString("team1");
+                            team2 = gameResultSet.getString("team2");
+
+                        } else {
+                            dbConnection.rollback();
+                            sendResponse(exchange, 404, "Game not found.");
+                            return;
+                        }
+                    }
+                }
+
+                // Check status is "upcoming"
+                if (!"upcoming".equalsIgnoreCase(gameStatus)) {
+                    dbConnection.rollback();
+                    sendResponse(exchange, 400, "Game is already being played or over.");
+                    return;
+                }
+
+                // Calculate amount to win from wagered
+                float amountToWin;
+                if ("h2h".equalsIgnoreCase(bet_type)) {
+                    if (team1.equalsIgnoreCase(picked_winner)) {
+                        if (odds1 < 0) {
+                            amountToWin = wagered + (wagered * 100/(-odds1))
+                        } else {
+                            amountToWin = wagered + (wagered * (odds1)/100)
+                        }
+                    } else if (team2.equalsIgnoreCase(picked_winner)) {
+                        if (odds2 < 0) {
+                            amountToWin = wagered + (wagered * 100/(-odds2))
+                        } else {
+                            amountToWin = wagered + (wagered * (odds2)/100)
+                        }
+                    } else {
+                        sendResponse(exchange, 400, "Invalid winner choice.");
+                        return;
+                    }
+                } else {
+                    sendResponse(exchange, 400, "Invalid bet type.");
+                    return;
+                }
+
+                // Insert into bets
+                try (PreparedStatement insertBetStatement = dbConnection.prepareStatement(
+                        "INSERT INTO bets (game_id, username, bet_type, wagered, picked_winner, amount_to_win, been_distributed, is_parlay, group_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                    insertBetStatement.setInt(1, game_id);
+                    insertBetStatement.setString(2, username);
+                    insertBetStatement.setString(3, bet_type);
+                    insertBetStatement.setFloat(4, wagered);
+                    insertBetStatement.setString(5, picked_winner);
+                    insertBetStatement.setFloat(6, amountToWin);
+                    insertBetStatement.setBoolean(7, been_distributed);
+                    insertBetStatement.setBoolean(8, isParlay);
+                    insertBetStatement.setString(9, group_name);
+
+                    insertBetStatement.executeUpdate();
+                }
+
+                String updateAccount = "UPDATE accounts SET current_cash = current_cash - ? WHERE username = ?";
+                try (PreparedStatement updateBetStatement = dbConnection.prepareStatement(updateAccount)) {
+                    updateBetStatement.setFloat(1, wagered);
+                    updateBetStatement.setString(2, username);
+                    updateBetStatement.executeUpdate();
+                }
+
+                // Commit the transaction
+                dbConnection.commit();
+
+                // Send success response
+                sendResponse(exchange, 200, "Bet placed successfully.");
+            } catch (SQLException e) {
+                dbConnection.rollback();
+                throw e;
+            } finally {
+                dbConnection.setAutoCommit(true);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            String response = "Get games in league failed.";
+            sendResponse(exchange, 500, response);
+        }
+    }
+
+    private void handleSellBet(HttpExchange exchange, String group_name, String username) throws IOException, SQLException {
+        // check if group has been deleted
+        try {
+            if (has_been_deleted(group_name)) {
+                exchange.sendResponseHeaders(410, -1);
+                return;
+            }
+            roleInGroup(username, group_name);
+            InputStream inputStream = exchange.getRequestBody();
+            String requestBody = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+            System.out.println("Received JSON payload: " + requestBody);
+
+            JSONObject jsonObject = new JSONObject(requestBody);
+            //String updated_group_name = jsonObject.getString("group_name");
+            int bet_id = jsonObject.getInt("bet_id");
+            float wageredAmount = 0;
+            boolean betExists = false;
+            boolean beenDistributed = false;
+            dbConnection.setAutoCommit(false);
+
+            // atomically read bets user bet_id to get wagered and check that the bet exists , update if bets !been_distributed and update accounts where current_cash += from bet
+            String query = "SELECT * FROM bets WHERE bet_id = ? AND username = ? AND group_name = ? FOR UPDATE";
+            String updateBet = "UPDATE bets SET been_distributed = true WHERE bet_id = ?";
+            String updateAccount = "UPDATE accounts SET current_cash = current_cash + ? WHERE username = ?";
+            try (PreparedStatement checkBetStatement = dbConnection.prepareStatement(query)) {
+                checkBetStatement.setInt(1, bet_id);
+                checkBetStatement.setString(2, username);
+                checkBetStatement.setString(3, group_name);
+
+                try (ResultSet resultSet = checkBetStatement.executeQuery()) {
+                    if (resultSet.next()) {
+                        betExists = true;
+                        wageredAmount = (float) resultSet.getDouble("wagered");
+                        beenDistributed = resultSet.getBoolean("been_distributed");
+                    }
+                }
+
+                if (!betExists) {
+                    dbConnection.rollback();
+                    sendResponse(exchange, 404, "Bet not found.");
+                    return;
+                }
+
+                if (beenDistributed) {
+                    dbConnection.rollback();
+                    sendResponse(exchange, 400, "Bet has already been distributed and cannot be sold.");
+                    return;
+                }
+
+                // Update the bet's been_distributed status
+                try (PreparedStatement updateBetStatement = dbConnection.prepareStatement(updateBet)) {
+                    updateBetStatement.setInt(1, bet_id);
+                    updateBetStatement.executeUpdate();
+                }
+
+                // Update the user's account balance
+                try (PreparedStatement updateAccountStatement = dbConnection.prepareStatement(updateAccount)) {
+                    updateAccountStatement.setDouble(1, wageredAmount * 0.9); // 90% of original buy price
+                    updateAccountStatement.setString(2, username);
+                    updateAccountStatement.executeUpdate();
+                }
+
+                // Commit the transaction
+                dbConnection.commit();
+
+                // Send success response
+                sendResponse(exchange, 200, "Bet sold successfully.");
+            } catch (SQLException e) {
+                dbConnection.rollback();
+                throw e;
+            } finally {
+                dbConnection.setAutoCommit(true);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            String response = "Get games in league failed.";
+            sendResponse(exchange, 500, response);
+        }
+    }
 }
