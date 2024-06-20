@@ -78,7 +78,7 @@ public class BetHandler implements HttpHandler {
                         group_name = getGamesByLeagueMatcher.group(1);
                         league_name = getGamesByLeagueMatcher.group(2);
                         handleGetGamesByLeague(exchange, group_name, league_name, page);
-                    } else if (getGamesByIDMatcher.matcher()) {
+                    } else if (getGamesByIDMatcher.matches()) {
                         group_name = getGamesByIDMatcher.group(1);
                         league_name = getGamesByIDMatcher.group(2);
                         game_id_str = getGamesByIDMatcher.group(3);
@@ -103,7 +103,7 @@ public class BetHandler implements HttpHandler {
                         exchange.sendResponseHeaders(405, -1); // Method Not Allowed
                     }
                     break;
-                case "DELETE":
+                case "PUT":
                     if (sellBetMatcher.matches()) {
                         group_name = sellBetMatcher.group(1);
                         handleSellBet(exchange, group_name, clientUsername);
@@ -185,7 +185,7 @@ public class BetHandler implements HttpHandler {
         JSONArray jsonArray = new JSONArray();
         String query = "SELECT * FROM leagues LIMIT 50 OFFSET ? * 50";
         try (PreparedStatement statement = dbConnection.prepareStatement(query)) {
-            betStatement.setInt(1, page);
+            statement.setInt(1, page);
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
                     JSONObject messageJson = new JSONObject();
@@ -219,7 +219,7 @@ public class BetHandler implements HttpHandler {
         Timestamp startTime = new Timestamp(calendar.getTimeInMillis());
 
         System.out.println("Group name: " + group_name+". League name: " + league_name);
-        String query = "SELECT * FROM games WHERE league_name = ? AND game_start_time >= ? LIMIT 50 OFFSET ? * 50";
+        String query = "SELECT * FROM games WHERE league = ? AND game_start_time >= ? LIMIT 50 OFFSET ? * 50";
         JSONArray jsonArray = new JSONArray();
         try (PreparedStatement statement = dbConnection.prepareStatement(query)) {
             statement.setString(1, league_name);
@@ -305,7 +305,7 @@ public class BetHandler implements HttpHandler {
             try (PreparedStatement statement = dbConnection.prepareStatement(query)) {
                 statement.setString(1, group_name);
                 statement.setString(2, username);
-                statement.setBoolean(3, been_settled);
+                statement.setBoolean(3, been_distributed);
                 statement.setInt(4, page);
                 try (ResultSet resultSet = statement.executeQuery()) {
                     while (resultSet.next()) {
@@ -321,7 +321,7 @@ public class BetHandler implements HttpHandler {
                         messageJson.put("been_distributed", resultSet.getBoolean("been_distributed"));
                         messageJson.put("is_parlay", resultSet.getBoolean("is_parlay"));
                         try (PreparedStatement gameStatement = dbConnection.prepareStatement(gameQuery)) {
-                            gameStatement.setString(1, resultSet.getInt("game_id"));
+                            gameStatement.setInt(1, resultSet.getInt("game_id"));
                             try (ResultSet gameResultSet = gameStatement.executeQuery()) {
                                 if (gameResultSet.next()) {
                                     messageJson.put("game_id", gameResultSet.getInt("game_id"));
@@ -416,15 +416,15 @@ public class BetHandler implements HttpHandler {
                 if ("h2h".equalsIgnoreCase(bet_type)) {
                     if (team1.equalsIgnoreCase(picked_winner)) {
                         if (odds1 < 0) {
-                            amountToWin = wagered + (wagered * 100/(-odds1))
+                            amountToWin = wagered + (wagered * 100/(-odds1));
                         } else {
-                            amountToWin = wagered + (wagered * (odds1)/100)
+                            amountToWin = wagered + (wagered * (odds1)/100);
                         }
                     } else if (team2.equalsIgnoreCase(picked_winner)) {
                         if (odds2 < 0) {
-                            amountToWin = wagered + (wagered * 100/(-odds2))
+                            amountToWin = wagered + (wagered * 100/(-odds2));
                         } else {
-                            amountToWin = wagered + (wagered * (odds2)/100)
+                            amountToWin = wagered + (wagered * (odds2)/100);
                         }
                     } else {
                         sendResponse(exchange, 400, "Invalid winner choice.");
@@ -437,7 +437,7 @@ public class BetHandler implements HttpHandler {
 
                 // Insert into bets
                 try (PreparedStatement insertBetStatement = dbConnection.prepareStatement(
-                        "INSERT INTO bets (game_id, username, bet_type, wagered, picked_winner, amount_to_win, been_distributed, is_parlay, group_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
+                        "INSERT INTO bets (game_id, username, type, wagered, picked_winner, amount_to_win, been_distributed, is_parlay, group_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")) {
                     insertBetStatement.setInt(1, game_id);
                     insertBetStatement.setString(2, username);
                     insertBetStatement.setString(3, bet_type);
@@ -500,7 +500,7 @@ public class BetHandler implements HttpHandler {
             // atomically read bets user bet_id to get wagered and check that the bet exists , update if bets !been_distributed and update accounts where current_cash += from bet
             String query = "SELECT * FROM bets WHERE bet_id = ? AND username = ? AND group_name = ? FOR UPDATE";
             String updateBet = "UPDATE bets SET been_distributed = true WHERE bet_id = ?";
-            String updateAccount = "UPDATE accounts SET current_cash = current_cash + ? WHERE username = ?";
+            String updateAccount = "UPDATE accounts SET current_cash = current_cash + ? WHERE username = ? AND group_name = ?";
             try (PreparedStatement checkBetStatement = dbConnection.prepareStatement(query)) {
                 checkBetStatement.setInt(1, bet_id);
                 checkBetStatement.setString(2, username);
@@ -536,6 +536,7 @@ public class BetHandler implements HttpHandler {
                 try (PreparedStatement updateAccountStatement = dbConnection.prepareStatement(updateAccount)) {
                     updateAccountStatement.setDouble(1, wageredAmount * 0.9); // 90% of original buy price
                     updateAccountStatement.setString(2, username);
+                    updateAccountStatement.setString(3, group_name);
                     updateAccountStatement.executeUpdate();
                 }
 

@@ -78,7 +78,7 @@
           <source>1.8</source>
           <target>1.8</target>
           <includes>
-            <include>**/handlers/betHandler.java</include>
+            <include>**/handlers/BetHandler.java</include>
             <include>**/PausableThreadPoolExecutor.java</include>
             <include>**/Server.java</include>
           </includes>
@@ -95,7 +95,7 @@
           </descriptorRefs>
           <archive>
             <manifest>
-              <mainClass>com.userbetservice.server.Server</mainClass> <!-- Replace with your main class -->
+              <mainClass>com.betservice.server.Server</mainClass> <!-- Replace with your main class -->
             </manifest>
           </archive>
         </configuration>

@@ -32,7 +32,7 @@ public class Server {
             HttpServer server = HttpServer.create(new InetSocketAddress(System.getenv("BET_HTTP_SERVER_HOST"), Integer.parseInt(System.getenv("BET_HTTP_SERVER_PORT"))), Integer.parseInt(System.getenv("BET_HTTP_SERVER_BACKLOG")));
 
             // Create a context for the endpoints
-            server.createContext("/bet", new betHandler(dbConnection));
+            server.createContext("/bet", new BetHandler(dbConnection));
 
             // New pausable thread pool executor
             PausableThreadPoolExecutor executor = new PausableThreadPoolExecutor(Integer.parseInt(System.getenv("BET_THREAD_POOL_CORE_SIZE")), Integer.parseInt(System.getenv("BET_THREAD_POOL_MAX_SIZE")), Integer.parseInt(System.getenv("BET_THREAD_POOL_KEEP_ALIVE")), TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
