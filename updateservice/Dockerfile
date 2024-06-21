@@ -28,7 +28,7 @@ WORKDIR /app
 # Copy the built application from the previous stage
 #COPY --from=build /app/target/authservice-*.jar app.jar
 # RUN ls -l /app/target/classes/com/authservice/server/
-COPY --from=build /app/target/BetUpdater-1.0-SNAPSHOT-jar-with-dependencies.jar app.jar
+COPY --from=build /app/target/Updater-1.0-SNAPSHOT-jar-with-dependencies.jar app.jar
 
 # Debug: List the contents of the working directory to verify the JAR file is copied
 RUN ls -l /app

@@ -1,31 +1,31 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: updatebet
+  name: update
   labels:
-    app: updatebet
+    app: update
 
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
-      app: updatebet
+      app: update
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxSurge: 3
+      maxSurge: 2
   template:
     metadata:
       labels:
-        app: updatebet
+        app: update
     spec:
       containers:
-        - name: updatebet
-          image: bryanwsebaraj/updatebet
+        - name: update
+          image: bryanwsebaraj/update
           ports:
             - containerPort: 5432
           envFrom:
             - configMapRef:
-                name: updatebet-configmap
+                name: update-configmap
             - secretRef:
-                name: updatebet-secret
+                name: update-secret

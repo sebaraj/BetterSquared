@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: CronJob
+metadata:
+  name: update-groups-cronjob
+spec:
+  schedule: "0 0 0 * * ?"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: update-groups
+              image: bryanwsebaraj/update
+              args: ["updateGroups"]
+          restartPolicy: OnFailure

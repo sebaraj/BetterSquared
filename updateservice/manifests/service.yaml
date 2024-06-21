@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: updatebet
+  name: update
 spec:
   selector:
-    app: updatebet
+    app: update
   type: ClusterIP
   ports:
     - name: db

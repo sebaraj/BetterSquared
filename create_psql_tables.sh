@@ -37,12 +37,15 @@ CREATE TABLE games (
           REFERENCES teams(team_name),
       odds1 NUMERIC(10,4) NOT NULL,
       line1 NUMERIC(10,4),
+      score1 INTEGER,
       team2 VARCHAR(50) NOT NULL,
       CONSTRAINT fk_team2
           FOREIGN KEY (team2)
           REFERENCES teams(team_name),
       odds2 NUMERIC(10,4) NOT NULL,
       line2 NUMERIC(10,4),
+      score2 INTEGER,
+      api_id VARCHAR(50) NOT NULL,
       last_update TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
       game_start_time TIMESTAMP NOT NULL,
       status VARCHAR(20) NOT NULL,

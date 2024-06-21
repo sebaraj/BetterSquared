@@ -3,8 +3,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.updatebetservice</groupId>
-  <artifactId>BetUpdater</artifactId>
+  <groupId>com.updateservice</groupId>
+  <artifactId>Updater</artifactId>
   <version>1.0-SNAPSHOT</version>
   <packaging>jar</packaging>
 
@@ -25,25 +25,10 @@
       <scope>compile</scope>
     </dependency>
 
-    <!-- Envvars library -->
-    <dependency>
-      <groupId>io.github.cdimascio</groupId>
-      <artifactId>dotenv-java</artifactId>
-      <version>2.2.0</version>
-      <scope>compile</scope>
-    </dependency>
-
     <dependency>
       <groupId>org.springframework.amqp</groupId>
       <artifactId>spring-amqp</artifactId>
       <version>3.1.2</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.auth0</groupId>
-      <artifactId>java-jwt</artifactId>
-      <version>4.0.0</version>
-      <scope>compile</scope>
     </dependency>
 
     <dependency>
@@ -65,6 +50,12 @@
       <scope>compile</scope>
     </dependency>
 
+    <dependency>
+      <groupId>org.quartz-scheduler</groupId>
+      <artifactId>quartz</artifactId>
+      <version>2.3.2</version>
+    </dependency>
+
   </dependencies>
 
   <build>
@@ -78,8 +69,11 @@
           <source>1.8</source>
           <target>1.8</target>
           <includes>
-            <include>**/PausableThreadPoolExecutor.java</include>
-            <include>**/BetUpdater.java</include>
+            <include>**/ScheduleGameTask.java</include>
+            <include>**/UpdateGameEndSettleBetTask.java</include>
+            <include>**/UpdateGameStartTask.java</include>
+            <include>**/UpdateGroupTask.java</include>
+            <include>**/Updater.java</include>
           </includes>
         </configuration>
       </plugin>
@@ -94,7 +88,7 @@
           </descriptorRefs>
           <archive>
             <manifest>
-              <mainClass>com.updatebetservice.betUpdater.BetUpdater</mainClass> <!-- Replace with your main class -->
+              <mainClass>com.updateservice.update.Updater</mainClass>
             </manifest>
           </archive>
         </configuration>
