@@ -3,7 +3,7 @@ kind: CronJob
 metadata:
   name: update-game-end-settle-bet-cronjob
 spec:
-  schedule: "54 17 * * *"
+  schedule: "0 */3 * * *"
   jobTemplate:
     spec:
       template:
@@ -12,4 +12,9 @@ spec:
             - name: update-game-end-settle-bet
               image: bryanwsebaraj/update
               args: ["updateGameEndSettleBet"]
+              envFrom:
+                - configMapRef:
+                    name: update-configmap
+                - secretRef:
+                    name: update-secret
           restartPolicy: OnFailure

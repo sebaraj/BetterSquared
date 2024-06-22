@@ -161,6 +161,20 @@ public class BetHandler implements HttpHandler {
         }
     }
 
+    private boolean isGroupActive(String group_name) throws SQLException {
+        String query = "SELECT is_active FROM groups WHERE group_name = ?";
+        try (PreparedStatement preparedStatement = dbConnection.prepareStatement(query)) {
+            preparedStatement.setString(1, group_name);
+            try (ResultSet resultSet = preparedStatement.executeQuery()) {
+                if (resultSet.next()) {
+                    return resultSet.getBoolean("is_active");
+                } else {
+                    throw new SQLException("No such group found in accounts table.");
+                }
+            }
+        }
+    }
+
     private boolean has_been_deleted(String group_name) throws SQLException {
         String query = "SELECT * FROM groups WHERE group_name = ?";
         try (PreparedStatement statement = dbConnection.prepareStatement(query)) {
@@ -365,7 +379,7 @@ public class BetHandler implements HttpHandler {
     private void handleBuyBet(HttpExchange exchange, String group_name, String username) throws IOException, SQLException {
         // check if group has been deleted
         try {
-            if (has_been_deleted(group_name)) {
+            if (has_been_deleted(group_name) && !isGroupActive(group_name)) {
                 exchange.sendResponseHeaders(410, -1);
                 return;
             }
@@ -487,7 +501,7 @@ public class BetHandler implements HttpHandler {
     private void handleSellBet(HttpExchange exchange, String group_name, String username) throws IOException, SQLException {
         // check if group has been deleted
         try {
-            if (has_been_deleted(group_name)) {
+            if (has_been_deleted(group_name) && !isGroupActive(group_name)) {
                 exchange.sendResponseHeaders(410, -1);
                 return;
             }

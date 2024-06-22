@@ -17,11 +17,15 @@ kubectl apply -f ./gatewayservice/manifests/gateway-deploy.yaml
 kubectl apply -f ./gatewayservice/manifests/secret.yaml
 kubectl apply -f ./gatewayservice/manifests/service.yaml
 
+kubectl apply -f ./cleanpods/manifests/
+
 kubectl apply -f ./emailservice/manifests/
 
 kubectl apply -f ./groupservice/manifests/
 
 kubectl apply -f ./betservice/manifests/
+
+kubectl apply -f ./updateservice/manifests/
 
 sudo kubectl apply -f ./gatewayservice/manifests/ingress.yaml
 

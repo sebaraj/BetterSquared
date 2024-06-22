@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.updateservice</groupId>
-  <artifactId>Updater</artifactId>
+  <artifactId>Scheduler</artifactId>
   <version>1.0-SNAPSHOT</version>
   <packaging>jar</packaging>
 
@@ -82,11 +82,12 @@
           <source>1.8</source>
           <target>1.8</target>
           <includes>
+            <include>**/GetNewGamesTask.java</include>
             <include>**/ScheduleGamesTask.java</include>
             <include>**/UpdateGameEndSettleBetTask.java</include>
             <include>**/UpdateGameStartTask.java</include>
             <include>**/UpdateGroupTask.java</include>
-            <include>**/Updater.java</include>
+            <include>**/Scheduler.java</include>
           </includes>
         </configuration>
       </plugin>
@@ -101,7 +102,7 @@
           </descriptorRefs>
           <archive>
             <manifest>
-              <mainClass>com.updateservice.update.Updater</mainClass>
+              <mainClass>com.updateservice.update.Scheduler</mainClass>
             </manifest>
           </archive>
         </configuration>
