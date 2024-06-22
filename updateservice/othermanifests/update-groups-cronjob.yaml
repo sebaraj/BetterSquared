@@ -1,9 +1,9 @@
-apiVersion: v1
+apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: update-groups-cronjob
 spec:
-  schedule: "0 0 0 * * ?"
+  schedule: "56 17 * * *"
   jobTemplate:
     spec:
       template:

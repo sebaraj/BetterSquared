@@ -98,6 +98,8 @@ Backend of a group-based sports betting simulator. Written in Java, utilizing Po
 ### Minikube
 - Install Minikube
   - `brew install minikube`
+  - `minikube config set cpu 4`
+  - `minikube config set memory 8192`
 
 ### Starting Backend
 - `./start-backend.sh` in this project root directory, with sudo permissions, to deploy on local computer via minikube

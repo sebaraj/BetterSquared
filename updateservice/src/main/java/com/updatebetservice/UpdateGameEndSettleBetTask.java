@@ -8,5 +8,6 @@ public class UpdateGameEndSettleBetTask implements Job {
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
         System.out.println("Executing updateGameEndSettleBet task");
+        return;
     }
 }
