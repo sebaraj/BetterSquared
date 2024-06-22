@@ -1,3 +1,4 @@
 .class
 authservice/.env
-
+tls.crt
+tls.key

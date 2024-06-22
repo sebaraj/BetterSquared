@@ -1,16 +1,26 @@
 package com.updateservice.update;
 
 import org.quartz.Job;
+import org.quartz.JobDetail;
+import org.quartz.JobBuilder;
+import org.quartz.Trigger;
+import org.quartz.TriggerBuilder;
+import org.quartz.Scheduler;
+import org.quartz.SchedulerException;
+import org.quartz.impl.StdSchedulerFactory;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.Instant;
 import java.util.Date;
+
 
 public class ScheduleGamesTask implements Job {
     private static Connection dbConnection;
@@ -26,7 +36,8 @@ public class ScheduleGamesTask implements Job {
 
             while (rs.next()) {
                 int gameId = rs.getInt("id");
-                LocalDateTime startTime = rs.getTimestamp("game_start_time")
+                LocalDateTime startTime = rs.getTimestamp("game_start_time").toLocalDateTime();
+
 
                 // Schedule a job for each game's start time
                 scheduleGameStartUpdateJob(gameId, startTime);
@@ -53,7 +64,7 @@ public class ScheduleGamesTask implements Job {
 
         Trigger trigger = TriggerBuilder.newTrigger()
                 .withIdentity("trigger-" + gameId)
-                .startAt(Date.from(startTime)
+                .startAt(Date.from(startTime.atZone(ZoneId.systemDefault()).toInstant()))
                 .build();
 
         Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();

@@ -11,7 +11,7 @@ import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
 import org.quartz.impl.StdSchedulerFactory;
 
-public class Scheduler {
+public class UpdateScheduler {
 
     public static void main(String[] args) {
         if (args.length == 0) {
@@ -28,7 +28,7 @@ public class Scheduler {
                     Scheduler scheduler = schedulerFactory.getScheduler();
                     scheduler.start();
                     System.out.println("Scheduler started");
-                    scheduleJob(scheduler, scheduleGamesTask.class, "0 0 3 * * ?"); // runs everyday at 3 am
+                    scheduleJob(scheduler, ScheduleGamesTask.class, "0 0 3 * * ?"); // runs everyday at 3 am
                     break;
                 case "updateGameEndSettleBet": // scheduled every 3 hours (12 times a day * num_of_days in a month < 500 api calls per month (using free tier))
                     executeJobNow(UpdateGameEndSettleBetTask.class);

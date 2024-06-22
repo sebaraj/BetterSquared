@@ -15,11 +15,12 @@ public class UpdateGroupTask implements Job {
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
         System.out.println("Executing updateGroup task");
+        PreparedStatement updateGroupStatus = null;
         try {
             // Update the game status in the database
             connectToDatabase();
             LocalDate yesterday = LocalDate.now().minusDays(1);
-            PreparedStatement updateGroupStatus = dbConnection.prepareStatement("UPDATE groups SET is_active = FALSE WHERE end_date = ?");
+            updateGroupStatus = dbConnection.prepareStatement("UPDATE groups SET is_active = FALSE WHERE end_date = ?");
             updateGroupStatus.setDate(1, Date.valueOf(yesterday));
             int rowsUpdated = updateGroupStatus.executeUpdate();
             System.out.println("Updated " + rowsUpdated + " rows to set is_active to FALSE where end_date was " + yesterday);

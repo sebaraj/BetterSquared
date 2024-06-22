@@ -6,17 +6,19 @@ import org.quartz.JobExecutionException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.SQLException;
 
 public class UpdateGameStartTask implements Job {
     private static Connection dbConnection;
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
         System.out.println("Executing update game start task");
+        PreparedStatement updateGameStart = null;
         int gameId = context.getJobDetail().getJobDataMap().getInt("gameId");
         try {
             // Update the game status in the database
             connectToDatabase();
-            PreparedStatement updateGameStart = dbConnection.prepareStatement("UPDATE games SET status = 'playing' WHERE id = ?");
+            updateGameStart = dbConnection.prepareStatement("UPDATE games SET status = 'playing' WHERE id = ?");
             updateGameStart.setInt(1, gameId);
             updateGameStart.executeUpdate();
         } catch (Exception e) {
