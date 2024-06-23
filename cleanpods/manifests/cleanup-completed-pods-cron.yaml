@@ -1,0 +1,19 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cleanup-completed-pods-cron
+spec:
+  schedule: "0 */6 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: pod-cleanup-servacc
+          containers:
+            - name: cleanup
+              image: bitnami/kubectl
+              command:
+                - /bin/sh
+                - -c
+                - kubectl delete pods --field-selector=status.phase==Succeeded
+          restartPolicy: OnFailure

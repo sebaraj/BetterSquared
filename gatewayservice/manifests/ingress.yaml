@@ -7,8 +7,12 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
 spec:
+  tls:
+    - hosts:
+        - better2.com
+      secretName: better2-tls
   rules:
-    - host: backend.com
+    - host: better2.com
       http:
         paths:
           - path: /
@@ -18,4 +22,3 @@ spec:
                 name: gateway
                 port:
                   number: 8080
-

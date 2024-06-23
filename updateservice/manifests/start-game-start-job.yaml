@@ -1,0 +1,17 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: schedule-game-start-job
+spec:
+  template:
+    spec:
+      containers:
+        - name: schedule-game-start
+          image: bryanwsebaraj/update
+          args: ["scheduleGameStart"]
+          envFrom:
+            - configMapRef:
+                name: update-configmap
+            - secretRef:
+                name: update-secret
+      restartPolicy: Never

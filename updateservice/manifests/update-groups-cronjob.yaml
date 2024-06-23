@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: update-groups-cronjob
+spec:
+  schedule: "1 0 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: update-groups
+              image: bryanwsebaraj/update
+              args: ["updateGroups"]
+              envFrom:
+                - configMapRef:
+                    name: update-configmap
+                - secretRef:
+                    name: update-secret
+          restartPolicy: OnFailure

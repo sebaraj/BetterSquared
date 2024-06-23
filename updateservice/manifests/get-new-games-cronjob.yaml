@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: get-new-games-cronjob
+spec:
+  schedule: "0 1 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: get-new-games
+              image: bryanwsebaraj/update
+              args: ["getNewGames"]
+              envFrom:
+                - configMapRef:
+                    name: update-configmap
+                - secretRef:
+                    name: update-secret
+          restartPolicy: OnFailure
