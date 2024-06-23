@@ -61,6 +61,7 @@ CREATE TABLE games (
           FOREIGN KEY (league)
           REFERENCES leagues(name)
       );
+CREATE INDEX idx_game_league_time ON games (league, game_start_time);
 CREATE TABLE group_roles (group_role_id SERIAL PRIMARY KEY, role VARCHAR(20) NOT NULL UNIQUE);
 INSERT INTO group_roles (role) VALUES ('group_creator'), ('group_admin'), ('group_user');
 CREATE TABLE groups (
@@ -120,7 +121,7 @@ CREATE TABLE bets (
       been_distributed BOOLEAN NOT NULL DEFAULT FALSE,
       is_parlay BOOLEAN NOT NULL DEFAULT FALSE
       );
-
+CREATE INDEX idx_bets_user_group_distributed ON bets (username, group_name, been_distributed);
 CREATE OR REPLACE FUNCTION set_default_current_cash()
 RETURNS TRIGGER AS \$\$
 BEGIN

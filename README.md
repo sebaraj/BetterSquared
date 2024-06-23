@@ -1,6 +1,6 @@
 # Better<sup>2<sup>
 
-Backend of a group-based sports betting simulator. Written in Java, utilizing PostgreSQL, Redis, NGINX, RabbitMQ, Maven, Docker, and Kubernetes.
+Backend of a group-based, simulated sports betting app. Written in Java, utilizing PostgreSQL, Redis, NGINX, RabbitMQ, Maven, Docker, and Kubernetes.
 
 [//]: # (add link to api here too)
 
@@ -18,25 +18,31 @@ Backend of a group-based sports betting simulator. Written in Java, utilizing Po
 [//]: # (insert picture here showing overall structure)
 
 ### Ingress
+- NGINX ingress functioning as a reverse proxy and SSL/TLS terminator, forwarding traffic towards the gateway service. 
 
 
 ### Gateway Service
-
+- HTTP server which directs incoming requests and outgoing responses to and from their appropriate services
 
 ### Authentication Service
-
+- Handles signup, login, reset password, and all JWT validation requests
+- Asynchronously sends messages (via AMQP) to the email notification service for user signup and password reset via message queue (RabbitMQ)
 
 ### Email Notification Service
-
+- Asynchronously delivers messages to client email (via SMTP w/ TLS) from message queue (RabbitMQ)
 
 ### Group Service
 
 
-### User Betting Service
+### Bet Service
 
 
-### Update Bet Service
+### Update Service
 - Automatically is run through a CronJob
+- Completed jobs/pods are manually garbage collected every 6 hours (see ./cleanpods/manifests)
+
+### RabbitMQ
+- Message queue with 1 GiB PVC and durable messages. Utilizes direct exchange into two queues.
 
 ### Database 
 
