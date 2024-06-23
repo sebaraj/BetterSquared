@@ -48,7 +48,12 @@ Backend of a group-based, simulated sports betting app. Written in Java, utilizi
 
 ![PostgreSQL DB Schema](./assets/bettersquared_postgresql_schema.png)
 
-[//]: # (insert picture of DB from Datagrip)
+### JWT Cache
+
+
+### Rate Limiter
+
+
 
 ## Deploying:
 
