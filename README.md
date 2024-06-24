@@ -18,40 +18,46 @@ Backend of a group-based, simulated sports betting app. Written in Java, utilizi
 [//]: # (insert picture here showing overall structure)
 
 ### Ingress
-- NGINX ingress functioning as a reverse proxy and SSL/TLS terminator, forwarding traffic towards the gateway service. 
-
+- NGINX ingress functioning as a reverse proxy and SSL/TLS terminator, forwarding traffic towards gateway service. 
 
 ### Gateway Service
 - HTTP server which directs incoming requests and outgoing responses to and from their appropriate services
+
+### Rate Limiter
 
 ### Authentication Service
 - Handles signup, login, reset password, and all JWT validation requests
 - Asynchronously sends messages (via AMQP) to the email notification service for user signup and password reset via message queue (RabbitMQ)
 
+### JWT Cache
+
 ### Email Notification Service
-- Asynchronously delivers messages to client email (via SMTP w/ TLS) from message queue (RabbitMQ)
+- Asynchronously delivers messages to client email (via SMTP w/ TLS) from messages in queue (RabbitMQ)
 
 ### Group Service
-
+- Provides client endpoints to 
 
 ### Bet Service
-
+- Provides client endpoints to
 
 ### Update Service
-- Automatically is run through a CronJob
+- Performs the following non-client-facing jobs:
+
+  - Adds new games on information from api call (runs as a scheduled cronjob on non-persistent pods)
+  - Updates game status from "upcoming" to "playing" when game starts via Quartz scheduler and appropriate triggers (runs on persistent pod)
+  - Updates game status from "playing" to "settled" based on information from api call and distributes winnings to users on respective bets (runs as a scheduled cronjob on non-persistent pods)
+  - Updates group status after the last active day (runs as a scheduled cronjob on non-persistent pods)
 - Completed jobs/pods are manually garbage collected every 6 hours (see ./cleanpods/manifests)
 
 ### RabbitMQ
 - Message queue with 1 GiB PVC and durable messages. Utilizes direct exchange into two queues.
 
 ### Database 
+- Persistent data store for backend, running outside k8s cluster
 
 ![PostgreSQL DB Schema](./assets/bettersquared_postgresql_schema.png)
 
-### JWT Cache
 
-
-### Rate Limiter
 
 
 
@@ -125,3 +131,5 @@ Backend of a group-based, simulated sports betting app. Written in Java, utilizi
 ### Kubernetes
 - I will always sing `k9s` praises and recommend it
 - Install with `brew install derailed/k9s/k9s`
+
+## Testing
