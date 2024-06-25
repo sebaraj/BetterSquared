@@ -68,7 +68,7 @@ public class JWTAuthHandler implements HttpHandler {
             // write to jwt cache
             int ttl = (int) (ttlMillis / 1000); // convert milliseconds to seconds
             jedis.setex(token, ttl, username);
-            System.out.println("(token, username) written to Redis master");
+            System.out.println(token+" "+username+" written to Redis master");
             //System.out.println(response);
             //System.out.println("username: " + username);
             exchange.sendResponseHeaders(200, response.getBytes().length);

@@ -14,12 +14,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.Scanner;
 import java.lang.System;
 import org.postgresql.Driver;
+import redis.clients.jedis.Jedis;
 
 public class Server {
 
     private static java.sql.Connection dbConnection;
     private static com.rabbitmq.client.Connection rabbitMQConnection;
     private static com.rabbitmq.client.Channel rabbitMQChannel;
+    private static Jedis jedis;
 
 //    static class StopServerException extends Exception {
 //        public StopServerException(String message) {
@@ -37,7 +39,7 @@ public class Server {
             connectToRabbitMQ();
 
             // connect to jwt cache
-            Jedis jedis = new Jedis(System.getenv("JWT_REDIS_MASTER_HOST"), System.getenv("JWT_REDIS_PORT"))
+            jedis = new Jedis(System.getenv("JWT_REDIS_MASTER_HOST"), Integer.parseInt(System.getenv("JWT_REDIS_PORT")));
 
             // Create an HttpServer instance, listening on port HTTP_SERVER_PORT with backlog HTTP_SERVER_BACKLOG
             HttpServer server = HttpServer.create(new InetSocketAddress(System.getenv("AUTH_HTTP_SERVER_HOST"), Integer.parseInt(System.getenv("AUTH_HTTP_SERVER_PORT"))), Integer.parseInt(System.getenv("AUTH_HTTP_SERVER_BACKLOG")));

@@ -13,6 +13,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.Scanner;
 import java.lang.System;
 //import org.postgresql.Driver;
+import redis.clients.jedis.Jedis;
 
 public class Server {
 
@@ -24,6 +25,7 @@ public class Server {
 
     public static void main(String[] args) {
         try {
+            Jedis jedis = new Jedis(System.getenv("JWT_REDIS_MASTER_HOST"), Integer.parseInt(System.getenv("JWT_REDIS_PORT")));
             // Load the .env file
             // Create an HttpServer instance, listening on port HTTP_SERVER_PORT with backlog HTTP_SERVER_BACKLOG
             System.out.println("GATEWAY HTTP Server started.");
@@ -33,10 +35,10 @@ public class Server {
             server.createContext("/login", new LoginHandler()); // connection
             server.createContext("/signup", new SignUpHandler());
             server.createContext("/forgotpassword", new ForgotPasswordHandler());
-            server.createContext("/testvalidate", new TestValidateHandler());
-            server.createContext("/group", new GroupHandler());
-            server.createContext("/groups", new GroupHandler());
-            server.createContext("/bet", new BetHandler());
+            server.createContext("/testvalidate", new TestValidateHandler(jedis));
+            server.createContext("/group", new GroupHandler(jedis));
+            server.createContext("/groups", new GroupHandler(jedis));
+            server.createContext("/bet", new BetHandler(jedis));
 
             // New pausable thread pool executor
             PausableThreadPoolExecutor executor = new PausableThreadPoolExecutor(Integer.parseInt(System.getenv("GATEWAY_THREAD_POOL_CORE_SIZE")), Integer.parseInt(System.getenv("GATEWAY_THREAD_POOL_MAX_SIZE")), Integer.parseInt(System.getenv("GATEWAY_THREAD_POOL_KEEP_ALIVE")), TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());

@@ -24,12 +24,14 @@ import java.util.Map;
 import java.lang.System;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import redis.clients.jedis.Jedis;
 
 //import io.github.cdimascio.dotenv.Dotenv;
 
 public class ValidateRequest {
 
     private final String authServiceUrl = System.getenv("AUTH_SERVICE_HOST") + ":" + System.getenv("AUTH_SERVICE_PORT");
+    private Jedis jedis;
 
     public class ValidationResult {
         private boolean isValid;
@@ -49,7 +51,7 @@ public class ValidateRequest {
         }
     }
 
-    public ValidationResult validateRequest(HttpExchange exchange) throws IOException {
+    public ValidationResult validateRequest(HttpExchange exchange, Jedis jedis) throws IOException {
         Headers requestHeaders = exchange.getRequestHeaders();
         System.out.println("Routing test validate request to " + authServiceUrl);
         URL url = new URL("http://" + authServiceUrl + "/validate");
@@ -65,6 +67,23 @@ public class ValidateRequest {
                 conn.setRequestProperty(header.getKey(), value);
             }
         }
+
+        // pull JWT from authorization Bearer + check redis
+        List<String> authorizationHeader = requestHeaders.get("Authorization");
+        if (authorizationHeader == null || authorizationHeader.isEmpty()) {
+            System.out.println("Authorization header is empty");
+            exchange.sendResponseHeaders(401, -1); // 401 Unauthorized
+            exchange.close();
+            return new ValidationResult(false, null);
+        }
+        String token = authorizationHeader.get(0).replace("Bearer ", "");
+        String username = jedis.get(token);
+        System.out.println(token+" "+username+" read from Redis slave");
+        if (username != null) {
+            System.out.println("Token/username found in Redis cache");
+            return new ValidationResult(true, username); // Validated
+        }
+        System.out.println("Token/username not found in Redis");
 
         conn.connect();
 
@@ -91,7 +110,7 @@ public class ValidateRequest {
         }
 
         String authy = parts[0];
-        String username = parts[parts.length - 1];
+        username = parts[parts.length - 1];
 //        System.out.println("Username: " + username);
 //        Headers responseHeaders = exchange.getResponseHeaders();
 //        if (responseHeaders.containsKey("username")) {

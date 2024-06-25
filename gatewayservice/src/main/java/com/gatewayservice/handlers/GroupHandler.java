@@ -13,12 +13,15 @@ import java.util.List;
 import java.lang.System;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import redis.clients.jedis.Jedis;
 
 public class GroupHandler implements HttpHandler {
 
     private final String groupServiceURL = System.getenv("GROUP_SERVICE_HOST") + ":" + System.getenv("GROUP_SERVICE_PORT");
+    private Jedis jedis;
 
-    public GroupHandler() {
+    public GroupHandler(Jedis jedis) {
+        this.jedis = jedis;
     }
 
     @Override
@@ -30,7 +33,7 @@ public class GroupHandler implements HttpHandler {
 
             // Validate request
             ValidateRequest validator = new ValidateRequest();
-            ValidateRequest.ValidationResult validationResult = validator.validateRequest(exchange);
+            ValidateRequest.ValidationResult validationResult = validator.validateRequest(exchange, this.jedis);
 
             if (!validationResult.isValid()) {
                 String errorResponse = "{\"error\": \"Unauthorized\"}";
