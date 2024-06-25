@@ -5,6 +5,7 @@ metadata:
 spec:
   ports:
     - port: 6479
+      targetPort: 6479
       name: redis
   clusterIP: None
   selector:

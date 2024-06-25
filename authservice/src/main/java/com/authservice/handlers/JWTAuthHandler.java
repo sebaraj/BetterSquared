@@ -18,15 +18,19 @@ import java.sql.ResultSet;
 import java.util.List;
 import java.util.Map;
 import java.lang.System;
+import redis.clients.jedis.Jedis;
+import java.util.Date;
 
 public class JWTAuthHandler implements HttpHandler {
 
     private Connection dbConnection;
     private final String jwtSecret;
+    private final Jedis jedis;
 
-    public JWTAuthHandler(Connection connection) {
+    public JWTAuthHandler(Connection connection, Jedis jedis) {
         this.dbConnection = connection;
         this.jwtSecret = System.getenv("AUTH_JWT_SECRET");
+        this.jedis = jedis;
     }
 
     @Override
@@ -55,8 +59,16 @@ public class JWTAuthHandler implements HttpHandler {
             System.out.println("Authenticated");
             // JWT is valid, proceed with handling the request and returning role
             String username = jwt.getClaim("username").asString();
-            //exchange.setAttribute("username", username);
+            Date expiresAt = jwt.getExpiresAt();
+            if (expiresAt == null) {
+                throw new RuntimeException("JWT does not have an expiration time");
+            }
+            long ttlMillis = expiresAt.getTime() - System.currentTimeMillis();
             String response = "Authenticated" + "/" + username;
+            // write to jwt cache
+            int ttl = (int) (ttlMillis / 1000); // convert milliseconds to seconds
+            jedis.setex(token, ttl, username);
+            System.out.println("(token, username) written to Redis master");
             //System.out.println(response);
             //System.out.println("username: " + username);
             exchange.sendResponseHeaders(200, response.getBytes().length);
@@ -65,7 +77,7 @@ public class JWTAuthHandler implements HttpHandler {
             OutputStream outputStream = exchange.getResponseBody();
             outputStream.write(response.getBytes());
             outputStream.close();
-        } catch (JWTVerificationException e) {
+        } catch (Exception e) {
             // Invalid token
             String response = "Invalid";
             exchange.sendResponseHeaders(401, -1); // 401 Unauthorized
