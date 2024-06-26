@@ -14,12 +14,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.Scanner;
 import java.lang.System;
 import org.postgresql.Driver;
+import redis.clients.jedis.Jedis;
 
 public class Server {
 
     private static java.sql.Connection dbConnection;
     private static com.rabbitmq.client.Connection rabbitMQConnection;
     private static com.rabbitmq.client.Channel rabbitMQChannel;
+    private static Jedis jedis;
 
 //    static class StopServerException extends Exception {
 //        public StopServerException(String message) {
@@ -36,6 +38,9 @@ public class Server {
 
             connectToRabbitMQ();
 
+            // connect to jwt cache
+            jedis = new Jedis(System.getenv("JWT_REDIS_MASTER_HOST"), Integer.parseInt(System.getenv("JWT_REDIS_PORT")));
+
             // Create an HttpServer instance, listening on port HTTP_SERVER_PORT with backlog HTTP_SERVER_BACKLOG
             HttpServer server = HttpServer.create(new InetSocketAddress(System.getenv("AUTH_HTTP_SERVER_HOST"), Integer.parseInt(System.getenv("AUTH_HTTP_SERVER_PORT"))), Integer.parseInt(System.getenv("AUTH_HTTP_SERVER_BACKLOG")));
 
@@ -43,7 +48,7 @@ public class Server {
             server.createContext("/login", new LoginHandler(dbConnection));
             server.createContext("/signup", new SignUpHandler(dbConnection, rabbitMQChannel));
             server.createContext("/forgotpassword", new ForgotPasswordHandler(dbConnection, rabbitMQChannel));
-            server.createContext("/validate", new JWTAuthHandler(dbConnection)); // cannot be accessed directly by client. called by gateway for jwt auth
+            server.createContext("/validate", new JWTAuthHandler(dbConnection, jedis)); // cannot be accessed directly by client. called by gateway for jwt auth
 
             // New pausable thread pool executor
             PausableThreadPoolExecutor executor = new PausableThreadPoolExecutor(Integer.parseInt(System.getenv("AUTH_THREAD_POOL_CORE_SIZE")), Integer.parseInt(System.getenv("AUTH_THREAD_POOL_MAX_SIZE")), Integer.parseInt(System.getenv("AUTH_THREAD_POOL_KEEP_ALIVE")), TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
@@ -84,7 +89,7 @@ public class Server {
 //                }
 //            }
 
-        } catch (SQLException | IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

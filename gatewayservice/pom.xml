@@ -17,6 +17,12 @@
       <scope>compile</scope>
     </dependency>
 
+    <dependency>
+      <groupId>redis.clients</groupId>
+      <artifactId>jedis</artifactId>
+      <version>4.0.1</version>
+    </dependency>
+
     <!-- https://mvnrepository.com/artifact/org.postgresql/postgresql -->
     <dependency>
       <groupId>org.postgresql</groupId>

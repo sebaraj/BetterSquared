@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-master
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+      role: master
+  template:
+    metadata:
+      labels:
+        app: redis
+        role: master
+    spec:
+      containers:
+        - name: redis
+          image: redis:6.2
+          ports:
+            - containerPort: 6379
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "100m"
+          volumeMounts:
+            - name: redis-storage
+              mountPath: /data
+      volumes:
+        - name: redis-storage
+          emptyDir: {}

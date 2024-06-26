@@ -22,6 +22,7 @@ import java.lang.System;
 import java.net.HttpURLConnection;
 import java.net.URL;
 //import io.github.cdimascio.dotenv.Dotenv;
+import redis.clients.jedis.Jedis;
 
 public class TestValidateHandler implements HttpHandler {
 
@@ -29,8 +30,10 @@ public class TestValidateHandler implements HttpHandler {
     //Dotenv dotenv = Dotenv.configure().load();
     //private final String jwtSecret = System.getenv("JWT_SECRET");
     private final String authServiceUrl = System.getenv("AUTH_SERVICE_HOST") + ":" + System.getenv("AUTH_SERVICE_PORT");
+    private Jedis jedis;
 
-    public TestValidateHandler() {
+    public TestValidateHandler(Jedis jedis) {
+        this.jedis = jedis;
     }
     //}  this.connection = connection;
 
@@ -39,7 +42,7 @@ public class TestValidateHandler implements HttpHandler {
         if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
             try {
                 ValidateRequest validator = new ValidateRequest();
-                ValidateRequest.ValidationResult validationResult = validator.validateRequest(exchange);
+                ValidateRequest.ValidationResult validationResult = validator.validateRequest(exchange, this.jedis);
                 boolean result = validationResult.isValid();
                 String username = validationResult.getUsername();
                 exchange.setAttribute("username", username);
