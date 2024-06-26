@@ -25,10 +25,10 @@ public class Server {
 
     public static void main(String[] args) {
         try {
-            Jedis jedis = new Jedis(System.getenv("JWT_REDIS_MASTER_HOST"), Integer.parseInt(System.getenv("JWT_REDIS_PORT")));
+            Jedis jedis = new Jedis(System.getenv("JWT_REDIS_SLAVE_HOST"), Integer.parseInt(System.getenv("JWT_REDIS_PORT")));
             // Load the .env file
             // Create an HttpServer instance, listening on port HTTP_SERVER_PORT with backlog HTTP_SERVER_BACKLOG
-            System.out.println("GATEWAY HTTP Server started.");
+            //System.out.println("GATEWAY HTTP Server started.");
             HttpServer server = HttpServer.create(new InetSocketAddress(System.getenv("GATEWAY_HTTP_SERVER_HOST"), Integer.parseInt(System.getenv("GATEWAY_HTTP_SERVER_PORT"))), Integer.parseInt(System.getenv("GATEWAY_HTTP_SERVER_BACKLOG")));
             System.out.println("GATEWAY HTTP Server started.");
             // Create a context for the endpoints
