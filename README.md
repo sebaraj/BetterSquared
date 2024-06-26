@@ -30,6 +30,8 @@ Backend of a group-based, simulated sports betting app. Written in Java, utilizi
 - Asynchronously sends messages (via AMQP) to the email notification service for user signup and password reset via message queue (RabbitMQ)
 
 ### JWT Cache
+- Read-through JWT-key, username-value cache with TTL set at JWT expiration time
+- Distributes reads across all slave instances via twemproxy (nutcracker)
 
 ### Email Notification Service
 - Asynchronously delivers messages to client email (via SMTP w/ TLS) from messages in queue (RabbitMQ)

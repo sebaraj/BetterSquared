@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: twemproxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: twemproxy
+  template:
+    metadata:
+      labels:
+        app: twemproxy
+    spec:
+      containers:
+        - name: twemproxy
+          image: bryanwsebaraj/twemproxy
+          ports:
+            - containerPort: 6379
+          volumeMounts:
+            - name: twemproxy-config
+              mountPath: /etc/nutcracker
+      volumes:
+        - name: twemproxy-config
+          configMap:
+            name: twemproxy-config
