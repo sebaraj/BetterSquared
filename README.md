@@ -120,6 +120,8 @@ Backend of a group-based, simulated sports betting app. Written in Java, utilizi
   - `minikube config set cpu 4`
   - `minikube config set memory 8192`
 
+### Self-signed cert
+
 ### Starting Backend
 - `./start-backend.sh` in this project root directory, with sudo permissions, to deploy on local computer via minikube
 
