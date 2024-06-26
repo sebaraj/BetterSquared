@@ -14,26 +14,41 @@ import java.lang.System;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisCluster;
+import java.util.concurrent.TimeUnit;
 
 public class BetHandler implements HttpHandler {
 
     private final String betServiceURL = System.getenv("BET_SERVICE_HOST") + ":" + System.getenv("BET_SERVICE_PORT");
-    private Jedis jedis;
+    private Jedis jwtCacheConnection;
+    private JedisCluster rateLimiterConnection;
+    private final int REQUEST_LIMIT = Integer.parseInt(System.getenv("RL_REQUEST_LIMIT"));// 2; // Maximum requests per window
+    private final long TIME_WINDOW_SECONDS = Integer.parseInt(System.getenv("RL_TIME_WINDOW")); // 60; // Time window in seconds
 
-    public BetHandler(Jedis jedis) {
-        this.jedis = jedis;
+    public BetHandler(Jedis jwtCacheConnection, JedisCluster rateLimiterConnection) {
+        this.rateLimiterConnection = rateLimiterConnection;
+        this.jwtCacheConnection = jwtCacheConnection;
     }
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         try {
+            if (!isRequestAllowed(exchange)) {
+                String errorResponse = "{\"error\": \"Rate limit exceeded\"}";
+                exchange.getResponseHeaders().set("Content-Type", "application/json; utf-8");
+                exchange.sendResponseHeaders(429, errorResponse.getBytes(StandardCharsets.UTF_8).length);
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(errorResponse.getBytes(StandardCharsets.UTF_8));
+                }
+                return;
+            }
             // Read request body
             InputStream is = exchange.getRequestBody();
             String requestBody = new String(is.readAllBytes(), StandardCharsets.UTF_8);
 
             // Validate request
             ValidateRequest validator = new ValidateRequest();
-            ValidateRequest.ValidationResult validationResult = validator.validateRequest(exchange, this.jedis);
+            ValidateRequest.ValidationResult validationResult = validator.validateRequest(exchange, this.jwtCacheConnection);
 
             if (!validationResult.isValid()) {
                 String errorResponse = "{\"error\": \"Unauthorized\"}";
@@ -92,6 +107,23 @@ public class BetHandler implements HttpHandler {
                 os.write(errorResponse.getBytes(StandardCharsets.UTF_8));
             }
         }
+    }
+
+    private boolean isRequestAllowed(HttpExchange exchange) {
+        String clientIP = exchange.getRemoteAddress().getAddress().getHostAddress();
+        long currentTimestamp = System.currentTimeMillis() / 1000;
+        long windowStart = currentTimestamp - TIME_WINDOW_SECONDS + 1;
+
+        try {
+            rateLimiterConnection.zremrangeByScore(clientIP, 0, windowStart - 1);
+            long currentRequests = rateLimiterConnection.zcard(clientIP);
+            rateLimiterConnection.zadd(clientIP, currentTimestamp, String.valueOf(currentTimestamp));
+            rateLimiterConnection.expire(clientIP, (int) TIME_WINDOW_SECONDS);
+            return currentRequests <= REQUEST_LIMIT;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 }
 

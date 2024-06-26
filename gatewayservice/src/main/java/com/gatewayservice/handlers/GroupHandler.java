@@ -22,8 +22,8 @@ public class GroupHandler implements HttpHandler {
     private final String groupServiceURL = System.getenv("GROUP_SERVICE_HOST") + ":" + System.getenv("GROUP_SERVICE_PORT");
     private Jedis jwtCacheConnection;
     private JedisCluster rateLimiterConnection;
-    private final int REQUEST_LIMIT = 2; // Maximum requests per window
-    private final long TIME_WINDOW_SECONDS = 60; // Time window in seconds
+    private final int REQUEST_LIMIT = Integer.parseInt(System.getenv("RL_REQUEST_LIMIT"));// 2; // Maximum requests per window
+    private final long TIME_WINDOW_SECONDS = Integer.parseInt(System.getenv("RL_TIME_WINDOW")); // 60; // Time window in seconds
 
     public GroupHandler(Jedis jwtCacheConnection, JedisCluster rateLimiterConnection) {
         this.rateLimiterConnection = rateLimiterConnection;

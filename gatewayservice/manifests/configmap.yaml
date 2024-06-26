@@ -29,3 +29,5 @@ data:
   RL_HOST_4: "redis1-4.redis1"
   RL_HOST_5: "redis1-5.redis1"
   RL_PORT: "6379"
+  RL_REQUEST_LIMIT: "20"
+  RL_TIME_WINDOW: "60"
