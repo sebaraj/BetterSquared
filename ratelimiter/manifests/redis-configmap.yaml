@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: redis1-config
+  name: rate-limiter-config
 data:
   redis.conf: |
     port 6379

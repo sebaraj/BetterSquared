@@ -15,5 +15,5 @@ data:
   AUTH_THREAD_POOL_KEEP_ALIVE: "30"
   RABBITMQ_HOST: "rabbitmq"
   RABBITMQ_PORT: "5672"
-  JWT_REDIS_MASTER_HOST: "redis-master"
+  JWT_REDIS_MASTER_HOST: "jwt-redis-master"
   JWT_REDIS_PORT: "6379"

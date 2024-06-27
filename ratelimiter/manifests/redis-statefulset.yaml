@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: redis1
+  name: rate-limiter
 spec:
-  serviceName: "redis1"
+  serviceName: "rate-limiter"
   replicas: 6
   selector:
     matchLabels:
-      app: redis1
+      app: rate-limiter
   template:
     metadata:
       labels:
-        app: redis1
+        app: rate-limiter
     spec:
       containers:
         - name: redis
@@ -19,7 +19,7 @@ spec:
           ports:
             - containerPort: 6379
           volumeMounts:
-            - name: redis1-data
+            - name: rate-limiter-data
               mountPath: /data
             - name: config-volume
               mountPath: /usr/local/etc/redis/redis.conf
@@ -29,10 +29,10 @@ spec:
       volumes:
         - name: config-volume
           configMap:
-            name: redis1-config
+            name: rate-limiter-config
   volumeClaimTemplates:
     - metadata:
-        name: redis1-data
+        name: rate-limiter-data
       spec:
         accessModes: ["ReadWriteOnce"]
         resources:

@@ -1,59 +1,58 @@
-package com.gatewayservice.server;
+/***********************************************************************************************************************
+ *  File Name:       ForgotPasswordHandler.java
+ *  Project:         Better2/gatewayservice
+ *  Author:          Bryan SebaRaj
+ *  Description:     Gateway-service handler to reset password via auth service
+ **********************************************************************************************************************/
+package com.better2.gatewayservice;
 
-import com.auth0.jwt.JWT;
-import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.exceptions.JWTCreationException;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Date;
-import java.util.List;
 import java.lang.System;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisCluster;
 import java.util.concurrent.TimeUnit;
-//import io.github.cdimascio.dotenv.Dotenv;
 
 public class ForgotPasswordHandler implements HttpHandler {
 
     private final String authServiceUrl = System.getenv("AUTH_SERVICE_HOST") + ":" + System.getenv("AUTH_SERVICE_PORT");
     private JedisCluster rateLimiterConnection;
-    private final int REQUEST_LIMIT = Integer.parseInt(System.getenv("RL_REQUEST_LIMIT"));// 2; // Maximum requests per window
-    private final long TIME_WINDOW_SECONDS = Integer.parseInt(System.getenv("RL_TIME_WINDOW")); // 60; // Time window in seconds
+    private final int REQUEST_LIMIT = Integer.parseInt(System.getenv("RL_REQUEST_LIMIT"));
+    private final long TIME_WINDOW_SECONDS = Integer.parseInt(System.getenv("RL_TIME_WINDOW"));
 
     public ForgotPasswordHandler(JedisCluster rateLimiterConnection) {
         this.rateLimiterConnection = rateLimiterConnection;
+    }
+
+    private void sendResponse(HttpExchange exchange, int statusCode, String response) throws IOException {
+        exchange.sendResponseHeaders(statusCode, response.getBytes().length);
+        try (OutputStream outputStream = exchange.getResponseBody()) {
+            outputStream.write(response.getBytes());
+            outputStream.close();
+        }
     }
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
             try {
+                // Checking redis-cluster rate limiter by host IP
                 if (!isRequestAllowed(exchange)) {
-                    String errorResponse = "{\"error\": \"Rate limit exceeded\"}";
-                    exchange.getResponseHeaders().set("Content-Type", "application/json; utf-8");
-                    exchange.sendResponseHeaders(429, errorResponse.getBytes(StandardCharsets.UTF_8).length);
-                    try (OutputStream os = exchange.getResponseBody()) {
-                        os.write(errorResponse.getBytes(StandardCharsets.UTF_8));
-                    }
+                    sendResponse(exchange, 429, "{\"error\": \"Rate limit exceeded\"}");
                     return;
                 }
-                // Read request body
+
+                // Reading request body
                 InputStream is = exchange.getRequestBody();
                 String requestBody = new String(is.readAllBytes(), StandardCharsets.UTF_8);
 
-                // Forward request to the authentication service
+                // Forwarding request to the authentication service
                 System.out.println("Routing forgot password request to " + authServiceUrl);
                 URL url = new URL("http://" + authServiceUrl + "/forgotpassword");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -66,33 +65,21 @@ public class ForgotPasswordHandler implements HttpHandler {
                     os.write(input, 0, input.length);
                 }
 
-                System.out.println("Receiving response from auth service.");
-                // Get response from the authentication service
-                int responseCode = conn.getResponseCode();
-                System.out.println("Response Code: " + responseCode);
-                InputStream authResponseStream = responseCode == 200 ? conn.getInputStream() : conn.getErrorStream();
+                // Receiving response from the auth service
+                System.out.println("ForgotPasswordHandler: Receiving response from auth service.");
+                InputStream authResponseStream = conn.getInputStream();
                 String authResponse = new String(authResponseStream.readAllBytes(), StandardCharsets.UTF_8);
-
-                // Set response headers and body
                 exchange.getResponseHeaders().set("Content-Type", "application/json; utf-8");
-                exchange.sendResponseHeaders(responseCode, authResponse.getBytes(StandardCharsets.UTF_8).length);
-                System.out.println("Routing forgot password response from auth to gateway");
-                try (OutputStream os = exchange.getResponseBody()) {
-                    os.write(authResponse.getBytes(StandardCharsets.UTF_8));
-                }
+
+                System.out.println("ForgotPasswordHandler: Routing response back to client.");
+                sendResponse(exchange, conn.getResponseCode(), authResponse);
 
             } catch (Exception e) {
                 e.printStackTrace();
-                String errorResponse = "{\"error\": \"Reset password failed.\"}";
-                exchange.getResponseHeaders().set("Content-Type", "application/json; utf-8");
-                exchange.sendResponseHeaders(500, errorResponse.getBytes(StandardCharsets.UTF_8).length);
-
-                try (OutputStream os = exchange.getResponseBody()) {
-                    os.write(errorResponse.getBytes(StandardCharsets.UTF_8));
-                }
+                sendResponse(exchange, 500, "{\"error\": \"Reset password failed.\"}");
             }
         } else {
-            exchange.sendResponseHeaders(405, -1); // 405 Method Not Allowed
+            sendResponse(exchange, 405, "{\"error\": \"Method not allowed.\"}");
         }
         exchange.close();
     }

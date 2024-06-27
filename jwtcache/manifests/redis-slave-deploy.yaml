@@ -1,9 +1,9 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: redis-slave
+  name: jwt-redis-slave
 spec:
-  serviceName: "redis-slave"
+  serviceName: "jwt-redis-slave"
   replicas: 2
   selector:
     matchLabels:
@@ -28,7 +28,7 @@ spec:
             - name: REDIS_REPLICATION_MODE
               value: "slave"
             - name: REDIS_MASTER_SERVICE_HOST
-              value: "redis-master"
+              value: "jwt-redis-master"
             - name: REDIS_MASTER_SERVICE_PORT
               value: "6379"
             - name: REDIS_ALLOW_EMPTY_PASSWORD

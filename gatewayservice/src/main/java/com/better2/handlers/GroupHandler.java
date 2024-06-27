@@ -1,15 +1,17 @@
-package com.gatewayservice.server;
+/***********************************************************************************************************************
+ *  File Name:       GroupHandler.java
+ *  Project:         Better2/gatewayservice
+ *  Author:          Bryan SebaRaj
+ *  Description:     Gateway-service handler for all group service traffic
+ **********************************************************************************************************************/
+package com.better2.gatewayservice;
 
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.Date;
-import java.util.List;
 import java.lang.System;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -22,92 +24,71 @@ public class GroupHandler implements HttpHandler {
     private final String groupServiceURL = System.getenv("GROUP_SERVICE_HOST") + ":" + System.getenv("GROUP_SERVICE_PORT");
     private Jedis jwtCacheConnection;
     private JedisCluster rateLimiterConnection;
-    private final int REQUEST_LIMIT = Integer.parseInt(System.getenv("RL_REQUEST_LIMIT"));// 2; // Maximum requests per window
-    private final long TIME_WINDOW_SECONDS = Integer.parseInt(System.getenv("RL_TIME_WINDOW")); // 60; // Time window in seconds
+    private final int REQUEST_LIMIT = Integer.parseInt(System.getenv("RL_REQUEST_LIMIT"));
+    private final long TIME_WINDOW_SECONDS = Integer.parseInt(System.getenv("RL_TIME_WINDOW"));
 
     public GroupHandler(Jedis jwtCacheConnection, JedisCluster rateLimiterConnection) {
         this.rateLimiterConnection = rateLimiterConnection;
         this.jwtCacheConnection = jwtCacheConnection;
     }
 
+    private void sendResponse(HttpExchange exchange, int statusCode, String response) throws IOException {
+        exchange.sendResponseHeaders(statusCode, response.getBytes().length);
+        try (OutputStream outputStream = exchange.getResponseBody()) {
+            outputStream.write(response.getBytes());
+            outputStream.close();
+        }
+    }
+
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         try {
-            // check rate limiter
+            // Checking redis-cluster rate limiter by host IP
             if (!isRequestAllowed(exchange)) {
-                String errorResponse = "{\"error\": \"Rate limit exceeded\"}";
-                exchange.getResponseHeaders().set("Content-Type", "application/json; utf-8");
-                exchange.sendResponseHeaders(429, errorResponse.getBytes(StandardCharsets.UTF_8).length);
-                try (OutputStream os = exchange.getResponseBody()) {
-                    os.write(errorResponse.getBytes(StandardCharsets.UTF_8));
-                }
+                sendResponse(exchange, 429, "{\"error\": \"Rate limit exceeded\"}");
                 return;
             }
 
-            // Read request body
-            InputStream is = exchange.getRequestBody();
-            String requestBody = new String(is.readAllBytes(), StandardCharsets.UTF_8);
-
-            // Validate request
+            // Checking JWT validity
             ValidateRequest validator = new ValidateRequest();
             ValidateRequest.ValidationResult validationResult = validator.validateRequest(exchange, this.jwtCacheConnection);
-
             if (!validationResult.isValid()) {
-                String errorResponse = "{\"error\": \"Unauthorized\"}";
-                exchange.getResponseHeaders().set("Content-Type", "application/json; utf-8");
-                exchange.sendResponseHeaders(401, errorResponse.getBytes(StandardCharsets.UTF_8).length);
-                try (OutputStream os = exchange.getResponseBody()) {
-                    os.write(errorResponse.getBytes(StandardCharsets.UTF_8));
-                }
+                sendResponse(exchange, 401, "{\"error\": \"Unauthorized\"}");
                 return;
             }
-
             String username = validationResult.getUsername();
 
             // Forward request to the group service
-            //System.out.println("Routing group request to " + groupServiceURL);
-            System.out.println("http://" + groupServiceURL + exchange.getRequestURI().toString());
+            System.out.println("GroupHandler: User validated. Forwarding request to group service.");
             URL url = new URL("http://" + groupServiceURL + exchange.getRequestURI().toString());
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            System.out.println(exchange.getRequestMethod());
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();;
             conn.setRequestMethod(exchange.getRequestMethod());
             conn.setRequestProperty("Content-Type", "application/json; utf-8");
             conn.setRequestProperty("Username", username);
 
             if (conn.getRequestMethod().equalsIgnoreCase("POST") || conn.getRequestMethod().equalsIgnoreCase("PUT")) {
                 conn.setDoOutput(true);
+                InputStream is = exchange.getRequestBody();
+                String requestBody = new String(is.readAllBytes(), StandardCharsets.UTF_8);
                 try (OutputStream os = conn.getOutputStream()) {
                     byte[] input = requestBody.getBytes(StandardCharsets.UTF_8);
                     os.write(input, 0, input.length);
                 }
             }
-            System.out.println(conn.getRequestMethod());
 
-
-            System.out.println("Receiving response from group service.");
-            // Get response from the group service
-            int responseCode = conn.getResponseCode();
-            System.out.println("Response Code: " + responseCode);
-            InputStream authResponseStream = responseCode == 200 ? conn.getInputStream() : conn.getErrorStream();
-            String authResponse = new String(authResponseStream.readAllBytes(), StandardCharsets.UTF_8);
-
-            // Set response headers and body
+            // Receiving response from the group service
+            System.out.println("GroupHandler: Receiving response from group service.");
+            InputStream groupResponseStream = conn.getInputStream();
+            String groupResponse = new String(groupResponseStream.readAllBytes(), StandardCharsets.UTF_8);
             exchange.getResponseHeaders().set("Content-Type", "application/json; utf-8");
-            exchange.sendResponseHeaders(responseCode, authResponse.getBytes(StandardCharsets.UTF_8).length);
-            System.out.println("Routing group response from group to gateway");
-            try (OutputStream os = exchange.getResponseBody()) {
-                os.write(authResponse.getBytes(StandardCharsets.UTF_8));
-            }
+
+            System.out.println("GroupHandler: Routing response back to client.");
+            sendResponse(exchange, conn.getResponseCode(), groupResponse);
+
 
         } catch (Exception e) {
             e.printStackTrace();
-            String errorResponse = "{\"error\": \"Group service response failed.\"}";
-            exchange.getResponseHeaders().set("Content-Type", "application/json; utf-8");
-            exchange.sendResponseHeaders(500, errorResponse.getBytes(StandardCharsets.UTF_8).length);
-
-            try (OutputStream os = exchange.getResponseBody()) {
-                os.write(errorResponse.getBytes(StandardCharsets.UTF_8));
-            }
+            sendResponse(exchange, 500, "{\"error\": \"Group service response failed.\"}");
         }
     }
 

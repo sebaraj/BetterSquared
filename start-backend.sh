@@ -15,22 +15,22 @@ kubectl apply -f ./rabbit/manifests/
 
 kubectl apply -f ./authservice/manifests/
 
-kubectl delete statefulset redis1
+kubectl delete statefulset rate-limiter
 
-kubectl delete pvc -l app=redis1
+kubectl delete pvc -l app=rate-limiter
 
-kubectl delete service redis1
+kubectl delete service rate-limiter
 
-kubectl delete configmap redis1-config
+kubectl delete configmap rate-limiter-config
 
 kubectl apply -f ./ratelimiter/manifests/
 
-sleep 30
+sleep 5
 
 # Loop until pod IPs are successfully fetched with exactly 6 IPs
 while true; do
     # Fetch pod IPs
-    pod_ips=$(kubectl get pods -o wide -l app=redis1 --no-headers | awk '{print $6}')
+    pod_ips=$(kubectl get pods -o wide -l app=rate-limiter --no-headers | awk '{print $6}')
 
     # Count the number of IPs
     ip_count=$(echo "$pod_ips" | wc -w)
@@ -67,7 +67,7 @@ done
 redis_cli_command="$redis_cli_command --cluster-replicas 1"
 
 # Execute the redis-cli command
-kubectl exec -it redis1-0 -- sh -c "$redis_cli_command"
+kubectl exec -it rate-limiter-0 -- sh -c "$redis_cli_command"
 
 kubectl apply -f ./jwtcache/manifests/
 

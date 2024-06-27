@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: redis1
+  name: rate-limiter
 spec:
   ports:
     - port: 6379
-      name: redis1
+      name: rate-limiter
   clusterIP: None
   selector:
-    app: redis1
+    app: rate-limiter

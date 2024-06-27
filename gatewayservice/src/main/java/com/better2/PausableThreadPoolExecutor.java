@@ -1,4 +1,10 @@
-package com.gatewayservice.server;
+/***********************************************************************************************************************
+ *  File Name:       PausableThreadPoolExecutor.java
+ *  Project:         Better2/gatewayservice
+ *  Author:          Bryan SebaRaj
+ *  Description:     Thread pool executor for gateway HTTP server
+ **********************************************************************************************************************/
+package com.better2.gatewayservice;
 
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.locks.Condition;
