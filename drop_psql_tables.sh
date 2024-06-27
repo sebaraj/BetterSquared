@@ -4,7 +4,7 @@
 HOST="localhost"
 PORT="5432"
 DATABASE="authdb"
-USER="authdbuser"  # Replace with your PostgreSQL username
+USER="authdbuser"
 
 # Define the SQL command to drop all tables
 SQL_COMMANDS=$(cat <<EOF

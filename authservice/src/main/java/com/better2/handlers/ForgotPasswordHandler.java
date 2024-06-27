@@ -1,4 +1,10 @@
-package com.authservice.server;
+/***********************************************************************************************************************
+ *  File Name:       ForgotPasswordHandler.java
+ *  Project:         Better2/authservice
+ *  Author:          Bryan SebaRaj
+ *  Description:     Auth-service-level handler to reset password
+ **********************************************************************************************************************/
+package com.better2.authservice;
 
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
@@ -26,62 +32,52 @@ public class ForgotPasswordHandler implements HttpHandler {
         this.rabbitMQChannel = rabbitMQChannel;
     }
 
+    private void sendResponse(HttpExchange exchange, int statusCode, String response) throws IOException {
+        exchange.sendResponseHeaders(statusCode, response.getBytes().length);
+        try (OutputStream outputStream = exchange.getResponseBody()) {
+            outputStream.write(response.getBytes());
+            outputStream.close();
+        }
+    }
+
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         if ("PUT".equalsIgnoreCase(exchange.getRequestMethod())) {
-            // Read the request body
-            InputStream inputStream = exchange.getRequestBody();
-            String requestBody = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-            System.out.println("Received JSON payload: " + requestBody);
-
             try {
-                // Parse the JSON payload
+                // Reading the request body and parsing JSON payload
+                InputStream inputStream = exchange.getRequestBody();
+                String requestBody = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
                 JSONObject jsonObject = new JSONObject(requestBody);
                 String username = jsonObject.getString("username");
+                System.out.println("ForgotPasswordHandler: Received request and JSON payload.");
 
-                // generate new password following contstraints
+                // Generating new hashed/salted password and updating databse
                 String unhashedPassword = generateRandomPassword(10);
-
-                // Hash and salt the password
                 String hashedPassword = hashPassword(unhashedPassword);
+                updatePasswordInDatabase(username, hashedPassword);
+                System.out.println("ForgotPasswordHandler: Changed password for user: " + username);
 
-                // update db with new password: UPDATE auth SET password = (hashed,salted,generated password) WHERE username= (username thats passed)
-                updatePasswordInDatabse(username, hashedPassword);
-                System.out.println("Changed password for user"); // print username
+                // Sending HTTP response to client (via gateway)
+                sendResponse(exchange, 200, "Reset password successfully");
 
-                // Send a response
-                String response = "Reset password successfully";
-                exchange.sendResponseHeaders(200, response.getBytes().length);
-                OutputStream outputStream = exchange.getResponseBody();
-                outputStream.write(response.getBytes());
-                outputStream.close();
-
-                System.out.println("Password reset successfully:" + unhashedPassword);
-                // add message to RabbitMQ so gmail SMTP microservice can send email notification of new password to email provided
+                // Publishing message to RabbitMQ
                 String queueName = "reset_password_email_queue";
                 rabbitMQChannel.queueDeclare(queueName, true, false, false, null);
-
-                // Create the JSON message to send to RabbitMQ
                 JSONObject messageJson = new JSONObject();
                 String email = getEmail(username);
                 messageJson.put("email", email);
                 messageJson.put("password", unhashedPassword);
                 String message = messageJson.toString();
-
-                // Publish the message to the queue
                 rabbitMQChannel.basicPublish("", queueName, MessageProperties.PERSISTENT_TEXT_PLAIN, message.getBytes(StandardCharsets.UTF_8));
 
-                System.out.println("Added message to RabbitMQ email queue");
+                System.out.println("ForgotPasswordHandler: Message send to RabbitMQ");
+
             } catch (Exception e) {
                 e.printStackTrace();
-                String response = "Error processing password change request";
-                exchange.sendResponseHeaders(500, response.getBytes().length);
-                OutputStream outputStream = exchange.getResponseBody();
-                outputStream.write(response.getBytes());
-                outputStream.close();
+                sendResponse(exchange, 500, "{\"error\": \"Auth service reset password failed\"}");
             }
         } else {
-            exchange.sendResponseHeaders(405, -1); // 405 Method Not Allowed
+            sendResponse(exchange, 405, "{\"error\": \"Method not allowed\"}");
         }
     }
 
@@ -89,7 +85,7 @@ public class ForgotPasswordHandler implements HttpHandler {
         return BCrypt.hashpw(password, BCrypt.gensalt());
     }
 
-    private void updatePasswordInDatabse(String username, String pass) throws SQLException {
+    private void updatePasswordInDatabase(String username, String pass) throws SQLException {
         String updateSQL = "UPDATE users SET password = ? WHERE username = ?";
         try (PreparedStatement preparedStatement = dbConnection.prepareStatement(updateSQL)) {
             preparedStatement.setString(1, pass);

@@ -1,4 +1,10 @@
-package com.authservice.server;
+/***********************************************************************************************************************
+ *  File Name:       PausableThreadPoolExecutor.java
+ *  Project:         Better2/authservice
+ *  Author:          Bryan SebaRaj
+ *  Description:     Thread pool executor for auth HTTP server
+ **********************************************************************************************************************/
+package com.better2.authservice;
 
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.locks.Condition;

@@ -1,6 +1,0 @@
-com/authservice/server/LoginHandler.class
-com/authservice/server/ChangePasswordHandler.class
-com/authservice/server/SignUpHandler.class
-com/authservice/server/JWTAuthHandler.class
-com/authservice/server/PausableThreadPoolExecutor.class
-com/authservice/server/Server.class

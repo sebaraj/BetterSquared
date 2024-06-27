@@ -32,7 +32,6 @@ while true; do
     # Fetch pod IPs
     pod_ips=$(kubectl get pods -o wide -l app=rate-limiter --no-headers | awk '{print $6}')
 
-    # Count the number of IPs
     ip_count=$(echo "$pod_ips" | wc -w)
 
     # Check if the count of IPs is exactly 6
@@ -63,10 +62,8 @@ for ip in $pod_ips; do
     fi
 done
 
-# Add cluster-replicas argument
 redis_cli_command="$redis_cli_command --cluster-replicas 1"
 
-# Execute the redis-cli command
 kubectl exec -it rate-limiter-0 -- sh -c "$redis_cli_command"
 
 kubectl apply -f ./jwtcache/manifests/
