@@ -67,12 +67,18 @@ public class ForgotPasswordHandler implements HttpHandler {
 
                 // Receiving response from the auth service
                 System.out.println("ForgotPasswordHandler: Receiving response from auth service.");
-                InputStream authResponseStream = conn.getInputStream();
+                InputStream authResponseStream;
+                int statusCode = conn.getResponseCode();
+                if (statusCode >= 200 && statusCode < 300) {
+                    authResponseStream = conn.getInputStream();
+                } else {
+                    authResponseStream = conn.getErrorStream();
+                }
                 String authResponse = new String(authResponseStream.readAllBytes(), StandardCharsets.UTF_8);
                 exchange.getResponseHeaders().set("Content-Type", "application/json; utf-8");
 
                 System.out.println("ForgotPasswordHandler: Routing response back to client.");
-                sendResponse(exchange, conn.getResponseCode(), authResponse);
+                sendResponse(exchange, statusCode, authResponse);
 
             } catch (Exception e) {
                 e.printStackTrace();

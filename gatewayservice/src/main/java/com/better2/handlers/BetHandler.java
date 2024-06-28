@@ -78,12 +78,18 @@ public class BetHandler implements HttpHandler {
 
             // Receiving response from the bet service
             System.out.println("BetHandler: Receiving response from bet service.");
-            InputStream betResponseStream = conn.getInputStream();
+            InputStream betResponseStream;
+            int statusCode = conn.getResponseCode();
+            if (statusCode >= 200 && statusCode < 300) {
+                betResponseStream = conn.getInputStream();
+            } else {
+                betResponseStream = conn.getErrorStream();
+            }
             String betResponse = new String(betResponseStream.readAllBytes(), StandardCharsets.UTF_8);
             exchange.getResponseHeaders().set("Content-Type", "application/json; utf-8");
 
             System.out.println("BetHandler: Routing response back to client.");
-            sendResponse(exchange, conn.getResponseCode(), betResponse);
+            sendResponse(exchange, statusCode, betResponse);
 
         } catch (Exception e) {
             e.printStackTrace();

@@ -1,4 +1,4 @@
-package com.betservice.server;
+package com.better2.betservice;
 
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.locks.Condition;

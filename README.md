@@ -122,6 +122,9 @@ Backend of a group-based, simulated sports betting app. Written in Java, utilizi
 
 ### Self-signed cert
 
+
+### /etc/hosts
+
 ### Starting Backend
 - `./start-backend.sh` in this project root directory, with sudo permissions, to deploy on local computer via minikube
 

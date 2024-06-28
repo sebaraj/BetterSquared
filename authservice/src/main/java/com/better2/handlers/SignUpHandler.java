@@ -26,7 +26,7 @@ public class SignUpHandler implements HttpHandler {
 
     private java.sql.Connection dbConnection;
     private com.rabbitmq.client.Channel rabbitMQChannel;
-    private static final String emailRegex = "^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$";
+    private static final String emailRegex = "^[\\w.-]+@([\\w-]+\\.)+[\\w-]{2,4}$";
     private static final Pattern emailPattern = Pattern.compile(emailRegex);
 
     public SignUpHandler(java.sql.Connection dbConnection, com.rabbitmq.client.Channel rabbitMQChannel) {

@@ -3,70 +3,36 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.updateservice</groupId>
+  <groupId>com.better2.updateservice</groupId>
   <artifactId>UpdateScheduler</artifactId>
   <version>1.0-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <dependencies>
-    <!-- JSON Library -->
-    <dependency>
-      <groupId>org.json</groupId>
-      <artifactId>json</artifactId>
-      <version>20210307</version>
-      <scope>compile</scope>
-    </dependency>
-
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
-      <version>2.13.0</version> <!-- Replace with the latest version -->
+      <version>2.13.0</version>
     </dependency>
 
-    <!-- https://mvnrepository.com/artifact/org.postgresql/postgresql -->
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <version>42.7.3</version>
-      <scope>compile</scope>
+      <version>42.3.8</version>
     </dependency>
 
+    <!-- Need for quartz scheduler -->
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
-      <version>1.7.32</version> <!-- Or the latest version -->
+      <version>1.7.32</version>
     </dependency>
 
-    <!-- Logback (Logging implementation) -->
+    <!-- Need for quartz scheduler -->
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
-      <version>1.2.6</version> <!-- Or the latest version -->
-    </dependency>
-
-    <dependency>
-      <groupId>org.springframework.amqp</groupId>
-      <artifactId>spring-amqp</artifactId>
-      <version>3.1.2</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.mindrot</groupId>
-      <artifactId>jbcrypt</artifactId>
-      <version>0.4</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.rabbitmq</groupId>
-      <artifactId>amqp-client</artifactId>
-      <version>5.12.0</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.google.code.gson</groupId>
-      <artifactId>gson</artifactId>
-      <version>2.8.8</version>
-      <scope>compile</scope>
+      <version>1.2.6</version>
     </dependency>
 
     <dependency>
@@ -108,7 +74,7 @@
           </descriptorRefs>
           <archive>
             <manifest>
-              <mainClass>com.updateservice.update.UpdateScheduler</mainClass>
+              <mainClass>com.better2.updateservice.UpdateScheduler</mainClass>
             </manifest>
           </archive>
         </configuration>

@@ -1,4 +1,4 @@
-package com.betservice.server;
+package com.better2.betservice;
 
 import com.sun.net.httpserver.HttpServer;
 import com.rabbitmq.client.ConnectionFactory;

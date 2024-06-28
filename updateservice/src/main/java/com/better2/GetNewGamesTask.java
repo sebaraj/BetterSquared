@@ -1,10 +1,16 @@
-package com.updateservice.update;
+/***********************************************************************************************************************
+ *  File Name:       GetNetGamesTask.java
+ *  Project:         Better2/updateservice
+ *  Author:          Bryan SebaRaj
+ *  Description:     Calls odds-api to get game information, adding new games into database
+ *  Schedule:        Once a day, at 1:00 am
+ **********************************************************************************************************************/
+package com.better2.updateservice;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.quartz.Job;
 import org.quartz.JobExecutionContext;
 import org.quartz.JobExecutionException;
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -18,9 +24,10 @@ public class GetNewGamesTask implements Job {
     private static Connection dbConnection;
     private static String API_URL;
     private static String API_KEY;
+
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
-        System.out.println("Executing scheduelGames task");
+        System.out.println("GetNewGamesTask: Executing job");
         LocalDate today = LocalDate.now();
         LocalDate datein2Days = today.plusDays(2);
         API_KEY = System.getenv("UPDATE_API_KEY");
@@ -28,39 +35,32 @@ public class GetNewGamesTask implements Job {
             throw new JobExecutionException("API key not found in environment variables");
         }
         callApiAndStoreGames(today.format(DateTimeFormatter.ISO_DATE), datein2Days.format(DateTimeFormatter.ISO_DATE));
-
-
     }
 
     private void callApiAndStoreGames(String date, String dateIn2Days) {
         try {
+            // Constructing API connection for specific date range
             API_URL ="https://api.the-odds-api.com/v4/sports/basketball_nba/odds/?apiKey=" + API_KEY + "&regions=us&markets=h2h&oddsFormat=american&bookmakers=draftkings&commenceTimeFrom=" + date + "&commenceTimeTo=" + dateIn2Days;
-            // Construct the API URL for the specific date
             URL url = new URL(API_URL);
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
-
-            // Check for successful response code or throw error
             int responseCode = connection.getResponseCode();
             if (responseCode != 200) {
                 throw new RuntimeException("HTTP GET Request Failed with Error code : " + responseCode);
             }
 
-            // Read the response from the API
+            // Reading response from API
             BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
             String inputLine;
             StringBuffer response = new StringBuffer();
-
             while ((inputLine = in.readLine()) != null) {
                 response.append(inputLine);
             }
             in.close();
 
-            // Parse the JSON response
+            // Parsing the JSON response and updating db
             ObjectMapper objectMapper = new ObjectMapper();
             List<Game> games = objectMapper.readValue(response.toString(), objectMapper.getTypeFactory().constructCollectionType(List.class, Game.class));
-
-            // Store games in the database
             storeGamesInDatabase(games);
         } catch (Exception e) {
             e.printStackTrace();
@@ -69,11 +69,11 @@ public class GetNewGamesTask implements Job {
 
     private void storeGamesInDatabase(List<Game> games) {
         try {
-            connectToDatabase();
+            // Connecting to DB and initializing queries
+            dbConnection = connectToDatabase();
             String checkGameQuery = "SELECT COUNT(*) FROM games WHERE api_id = ?";
             String insertGameQuery = "INSERT INTO games (api_id, league, game_start_time, team1, team2, odds1, odds2, last_update, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
             String updateGameQuery = "UPDATE games SET team1 = ?, odds1 = ?, team2 = ?, odds2 = ?, last_update = ? WHERE api_id = ?";
-
             PreparedStatement checkStmt = dbConnection.prepareStatement(checkGameQuery);
             PreparedStatement insertStmt = dbConnection.prepareStatement(insertGameQuery);
             PreparedStatement updateStmt = dbConnection.prepareStatement(updateGameQuery);
@@ -87,13 +87,13 @@ public class GetNewGamesTask implements Job {
                 Game.Bookmaker bookmaker = game.getBookmakers().get(0);
                 Game.Outcome outcome1 = bookmaker.getMarkets().get(0).getOutcomes().get(0);
                 Game.Outcome outcome2 = bookmaker.getMarkets().get(0).getOutcomes().get(1);
+                LocalDate localDate = LocalDate.parse(bookmaker.getLast_update(), DateTimeFormatter.ISO_LOCAL_DATE);
                 // If game exists, update it
                 if (count == 1) {
                     updateStmt.setString(1, game.getHome_team());
                     updateStmt.setFloat(2, outcome1.getPrice());
                     updateStmt.setString(3, game.getAway_team());
                     updateStmt.setFloat(4, outcome2.getPrice());
-                    LocalDate localDate = LocalDate.parse(bookmaker.getLast_update(), DateTimeFormatter.ISO_LOCAL_DATE);
                     updateStmt.setDate(5, Date.valueOf(localDate));
                     updateStmt.setString(6, game.getId());
                     updateStmt.executeUpdate();
@@ -109,7 +109,6 @@ public class GetNewGamesTask implements Job {
                     insertStmt.setString(5, game.getAway_team());
                     insertStmt.setFloat(6, outcome1.getPrice());
                     insertStmt.setFloat(7, outcome2.getPrice());
-                    LocalDate localDate = LocalDate.parse(bookmaker.getLast_update(), DateTimeFormatter.ISO_LOCAL_DATE);
                     insertStmt.setDate(8, Date.valueOf(localDate));
                     insertStmt.setString(9, "upcoming");
                     insertStmt.executeUpdate();
@@ -197,13 +196,10 @@ public class GetNewGamesTask implements Job {
         public void setBookmakers(List<Bookmaker> bookmakers) { this.bookmakers = bookmakers; }
     }
 
-    private static void connectToDatabase() throws SQLException {
-        System.out.println("Connecting to DB...");
+    private static Connection connectToDatabase() throws SQLException {
         String url = "jdbc:postgresql://"+ System.getenv("UPDATE_DB_HOST") +":" + System.getenv("UPDATE_DB_PORT") + "/" + System.getenv("UPDATE_DB_NAME");
         String user = System.getenv("UPDATE_DB_USER");
         String password = System.getenv("UPDATE_DB_PASSWORD");
-
-        dbConnection = DriverManager.getConnection(url, user, password);
-        System.out.println("Connected to the PostgreSQL server successfully.");
+        return DriverManager.getConnection(url, user, password);
     }
 }

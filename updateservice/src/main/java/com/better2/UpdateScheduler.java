@@ -1,4 +1,10 @@
-package com.updateservice.update;
+/***********************************************************************************************************************
+ *  File Name:       UpdateScheduler.java
+ *  Project:         Better2/updateservice
+ *  Author:          Bryan SebaRaj
+ *  Description:     Intializes scheduler and switch to direct scheduled cronjobs to appropriate task
+ **********************************************************************************************************************/
+package com.better2.updateservice;
 
 import org.quartz.CronScheduleBuilder;
 import org.quartz.Job;
@@ -21,22 +27,21 @@ public class UpdateScheduler {
 
         String task = args[0];
         try {
-
             switch (task) {
-                case "scheduleGameStart": // define as job launched during ./start-backend . scheduled once a day to schedule game status switch for today's upcoming games
+                case "scheduleGameStart":
                     SchedulerFactory schedulerFactory = new StdSchedulerFactory();
                     Scheduler scheduler = schedulerFactory.getScheduler();
                     scheduler.start();
-                    System.out.println("Scheduler started");
-                    scheduleJob(scheduler, ScheduleGamesTask.class, "0 0 3 * * ?"); // runs everyday at 3 am
+                    scheduleJob(scheduler, ScheduleGamesTask.class, "0 0 3 * * ?");
+                    System.out.println("UpdateScheduler: ScheduleGameTask started");
                     break;
-                case "updateGameEndSettleBet": // scheduled every 3 hours (12 times a day * num_of_days in a month < 500 api calls per month (using free tier))
+                case "updateGameEndSettleBet":
                     executeJobNow(UpdateGameEndSettleBetTask.class);
                     break;
-                case "updateGroups": // scheduled once at 12:01 am to change status of each group that ended the previous day
+                case "updateGroups":
                     executeJobNow(UpdateGroupTask.class);
                     break;
-                case "getNewGames": // scheduled once at 1:00 am get new games from API
+                case "getNewGames":
                     executeJobNow(GetNewGamesTask.class);
                     break;
                 default:
@@ -53,15 +58,8 @@ public class UpdateScheduler {
     }
 
     private static void scheduleJob(Scheduler scheduler, Class<? extends Job> jobClass, String cronExpression) throws SchedulerException {
-        JobDetail jobDetail = JobBuilder.newJob(jobClass)
-                .withIdentity(jobClass.getSimpleName())
-                .build();
-
-        Trigger trigger = TriggerBuilder.newTrigger()
-                .withIdentity("trigger-" + jobClass.getSimpleName())
-                .withSchedule(CronScheduleBuilder.cronSchedule(cronExpression))
-                .build();
-
+        JobDetail jobDetail = JobBuilder.newJob(jobClass).withIdentity(jobClass.getSimpleName()).build();
+        Trigger trigger = TriggerBuilder.newTrigger().withIdentity("trigger-" + jobClass.getSimpleName()).withSchedule(CronScheduleBuilder.cronSchedule(cronExpression)).build();
         scheduler.scheduleJob(jobDetail, trigger);
     }
 }

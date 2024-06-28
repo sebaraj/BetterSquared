@@ -25,7 +25,7 @@ kubectl delete configmap rate-limiter-config
 
 kubectl apply -f ./ratelimiter/manifests/
 
-sleep 5
+sleep 20
 
 # Loop until pod IPs are successfully fetched with exactly 6 IPs
 while true; do
@@ -45,6 +45,10 @@ while true; do
 
     fi
 done
+
+sleep 10
+
+pod_ips=$(kubectl get pods -o wide -l app=rate-limiter --no-headers | awk '{print $6}')
 
 for ip in $pod_ips; do
     echo $ip

@@ -78,12 +78,18 @@ public class GroupHandler implements HttpHandler {
 
             // Receiving response from the group service
             System.out.println("GroupHandler: Receiving response from group service.");
-            InputStream groupResponseStream = conn.getInputStream();
+            InputStream groupResponseStream;
+            int statusCode = conn.getResponseCode();
+            if (statusCode >= 200 && statusCode < 300) {
+                groupResponseStream = conn.getInputStream();
+            } else {
+                groupResponseStream = conn.getErrorStream();
+            }
             String groupResponse = new String(groupResponseStream.readAllBytes(), StandardCharsets.UTF_8);
             exchange.getResponseHeaders().set("Content-Type", "application/json; utf-8");
 
             System.out.println("GroupHandler: Routing response back to client.");
-            sendResponse(exchange, conn.getResponseCode(), groupResponse);
+            sendResponse(exchange, statusCode, groupResponse);
 
 
         } catch (Exception e) {
