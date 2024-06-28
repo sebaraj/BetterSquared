@@ -1,4 +1,10 @@
-package com.groupservice.server;
+/***********************************************************************************************************************
+ *  File Name:       GroupsHandler.java
+ *  Project:         Better2/groupservice
+ *  Author:          Bryan SebaRaj
+ *  Description:     Handler for multi-group GET HTTP traffic for group service
+ **********************************************************************************************************************/
+package com.better2.groupservice;
 
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
@@ -23,23 +29,27 @@ import java.util.HashMap;
 public class GroupsHandler implements HttpHandler {
 
     private java.sql.Connection dbConnection;
-    //private String clientUsername;
     private Pattern groupsPattern = Pattern.compile("/groups"); // get all groups that belong to user that called it
     private Pattern searchPattern = Pattern.compile("/groups/search"); // get all groups that fit search parameters
 
     public GroupsHandler(java.sql.Connection dbConnection) {
-        //this.clientUsername = clientUsername;
         this.dbConnection = dbConnection;
     }
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         try {
-            String clientUsername = ""; // = "bryans"; //  (String) exchange.getAttribute("username");
+            // Getting client username from HTTP header
+            String clientUsername = "";
             Headers requestHeaders = exchange.getRequestHeaders();
             if (requestHeaders.containsKey("username")) {
                 clientUsername = requestHeaders.getFirst("username");
+            } else {
+                sendResponse(exchange, 401, "{\"error\": \"Group service did not receive a username\"}");
+                return;
             }
+
+            // Matching regex patterns and extracting query parameters
             int page = 0;
             URI requestUri = exchange.getRequestURI();
             String path = requestUri.getPath();
@@ -51,31 +61,31 @@ public class GroupsHandler implements HttpHandler {
             page = Integer.parseInt(pageStr);
             String group_name = queryParams.getOrDefault("name", "");
 
+            // Routing traffic to respective sub-handler
             if ("GET".equalsIgnoreCase(exchange.getRequestMethod())) {
                 if (groupsMatcher.matches()) {
                     handlerGetAccountsOfUser(exchange, clientUsername);
                     return;
                 } else if (searchMatcher.matches()) {
                     if (page > -1 && !"".equals(group_name)) {
-                        System.out.println("Using search with page/name");
+                        System.out.println("GroupsHandler: Handling GetGroupsByName.");
                         handleGetGroupsByName(exchange, group_name, page);
                         return;
                     } else if (page > -1 && group_name.isEmpty()) {
-                        System.out.println("Using search with page");
+                        System.out.println("GroupsHandler: Handling GetGroupsWithoutName.");
                         handleGetGroupsWithoutName(exchange, page);
                         return;
                     }
+                } else {
+                    sendResponse(exchange, 400, "{\"error\": \"Incorrect query parameters\"}");
+                    return;
                 }
-                // if pageSTR is -1 and group_name not empty
-
+            } else {
+                sendResponse(exchange, 405, "{\"error\": \"Method not allowed\"}");
             }
-            String response = "Method not allowed";
-            sendResponse(exchange, 405, response);
-
         } catch (Exception e) {
             e.printStackTrace();
-            String response = "Not allowed";
-            sendResponse(exchange, 500, response);
+            sendResponse(exchange, 500, "{\"error\": \"Group service multi-group GET failed\"}");
         }
 
     }
@@ -120,7 +130,7 @@ public class GroupsHandler implements HttpHandler {
 
     private void handlerGetAccountsOfUser(HttpExchange exchange, String username) throws IOException {
         try {
-            String query = "SELECT * FROM accounts WHERE username = ?"; // get all groups with start with the substring name
+            String query = "SELECT * FROM accounts WHERE username = ?";
             try (PreparedStatement statement = dbConnection.prepareStatement(query)) {
                 statement.setString(1, username);
                 try (ResultSet resultSet = statement.executeQuery()) {
@@ -153,14 +163,13 @@ public class GroupsHandler implements HttpHandler {
                 }
             }
         } catch (SQLException e) {
-            String response = "Could not get accounts of user.";
-            sendResponse(exchange, 404, response);
+            sendResponse(exchange, 500, "{\"error\": \"Could not get user accounts\"}");
         }
     }
 
     private void handleGetGroupsByName(HttpExchange exchange, String name, int page) throws IOException {
         try {
-            String query = "SELECT * FROM groups WHERE group_name LIKE ? AND has_been_deleted = false LIMIT 50 OFFSET ?"; // get all groups with start with the substring name
+            String query = "SELECT * FROM groups WHERE group_name LIKE ? AND has_been_deleted = false LIMIT 50 OFFSET ?";
             try (PreparedStatement statement = dbConnection.prepareStatement(query)) {
                 statement.setString(1, name + "%");
                 statement.setInt(2, page*50);
@@ -181,8 +190,7 @@ public class GroupsHandler implements HttpHandler {
                 }
             }
         } catch (SQLException e) {
-            String response = "Groups with that name do not exist.";
-            sendResponse(exchange, 404, response);
+            sendResponse(exchange, 500, "{\"error\": \"Could not get groups by substring\"}");
         }
     }
 
@@ -208,8 +216,7 @@ public class GroupsHandler implements HttpHandler {
                 }
             }
         } catch (SQLException e) {
-            String response = "Failed to get groups.";
-            sendResponse(exchange, 500, response);
+            sendResponse(exchange, 500, "{\"error\": \"Could not get groups without name\"}");
         }
     }
 

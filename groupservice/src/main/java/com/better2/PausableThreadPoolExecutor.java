@@ -1,4 +1,10 @@
-package com.groupservice.server;
+/***********************************************************************************************************************
+ *  File Name:       PausableThreadPoolExecutor.java
+ *  Project:         Better2/groupservice
+ *  Author:          Bryan SebaRaj
+ *  Description:     Thread pool executor for group HTTP server
+ **********************************************************************************************************************/
+package com.better2.groupservice;
 
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.locks.Condition;

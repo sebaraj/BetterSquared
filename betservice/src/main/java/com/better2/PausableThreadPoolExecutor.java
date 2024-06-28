@@ -1,3 +1,9 @@
+/***********************************************************************************************************************
+ *  File Name:       PausableThreadPoolExecutor.java
+ *  Project:         Better2/betservice
+ *  Author:          Bryan SebaRaj
+ *  Description:     Thread pool executor for bet HTTP server
+ **********************************************************************************************************************/
 package com.better2.betservice;
 
 import java.util.concurrent.ThreadPoolExecutor;

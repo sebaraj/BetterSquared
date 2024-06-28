@@ -44,8 +44,6 @@ public class Server {
             server.createContext("/signup", new SignUpHandler(dbConnection, rabbitMQChannel));
             server.createContext("/forgotpassword", new ForgotPasswordHandler(dbConnection, rabbitMQChannel));
             server.createContext("/validate", new JWTAuthHandler(jedis));
-
-            // Creating new pausable thread executor for the server
             PausableThreadPoolExecutor executor = new PausableThreadPoolExecutor(Integer.parseInt(System.getenv("AUTH_THREAD_POOL_CORE_SIZE")), Integer.parseInt(System.getenv("AUTH_THREAD_POOL_MAX_SIZE")), Integer.parseInt(System.getenv("AUTH_THREAD_POOL_KEEP_ALIVE")), TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>());
             int startedThreads = executor.prestartAllCoreThreads();
             System.out.println("Server: Prestarted " + startedThreads + " threads for HTTP server");

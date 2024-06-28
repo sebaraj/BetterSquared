@@ -1,3 +1,9 @@
+/***********************************************************************************************************************
+ *  File Name:       BetHandler.java
+ *  Project:         Better2/betservice
+ *  Author:          Bryan SebaRaj
+ *  Description:     Handler for all HTTP traffic for bet service
+ **********************************************************************************************************************/
 package com.better2.betservice;
 
 import com.sun.net.httpserver.HttpHandler;
@@ -26,9 +32,6 @@ import java.util.TimeZone;
 public class BetHandler implements HttpHandler {
 
     private Connection dbConnection;
-    //private String clientUsername;
-
-
     private Pattern getLeaguesPattern = Pattern.compile("/bet/([^/]+)"); // GET /bet/{group_name}
     private Pattern getGamesByLeaguePattern = Pattern.compile("/bet/([^/]+)/view/([^/]+)"); // GET /bet/{group_name}/view/{league_name}
     private Pattern getGamesByIDPattern = Pattern.compile("/bet/([^/]+)/view/([^/]+)/([^/]+)"); // GET /bet/{group_name}/view/{league_name}/{game_id}
@@ -39,17 +42,22 @@ public class BetHandler implements HttpHandler {
 
 
     public BetHandler(Connection dbConnection) {
-        //this.clientUsername = clientUsername;
         this.dbConnection = dbConnection;
     }
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-        String clientUsername = ""; // = "bryans"; //  (String) exchange.getAttribute("username");
+        // Getting client username from HTTP header
+        String clientUsername = "";
         Headers requestHeaders = exchange.getRequestHeaders();
         if (requestHeaders.containsKey("username")) {
             clientUsername = requestHeaders.getFirst("username");
+        } else {
+            sendResponse(exchange, 401, "{\"error\": \"Group service did not receive a username\"}");
+            return;
         }
+
+        // Matching regex patterns and extracting query parameters
         String group_name, league_name, game_id_str;
         int page = 0, game_id;
         URI requestUri = exchange.getRequestURI();
@@ -71,54 +79,61 @@ public class BetHandler implements HttpHandler {
             switch (exchange.getRequestMethod()) {
                 case "GET":
                     if (getLeaguesMatcher.matches()) {
-                        //System.out.println("matched");
+                        System.out.println("BetHandler: Handling GetLeagues.");
                         group_name = getLeaguesMatcher.group(1);
                         handleGetLeagues(exchange, group_name, page);
                     } else if (getGamesByLeagueMatcher.matches()) {
+                        System.out.println("BetHandler: Handling GetGamesByLeague.");
                         group_name = getGamesByLeagueMatcher.group(1);
                         league_name = getGamesByLeagueMatcher.group(2);
                         handleGetGamesByLeague(exchange, group_name, league_name, page);
                     } else if (getGamesByIDMatcher.matches()) {
+                        System.out.println("BetHandler: Handling GetGamesByID.");
                         group_name = getGamesByIDMatcher.group(1);
                         league_name = getGamesByIDMatcher.group(2);
                         game_id_str = getGamesByIDMatcher.group(3);
                         game_id = Integer.parseInt(game_id_str);
                         handleGetGamesByID(exchange, group_name, league_name, game_id);
                     } else if (getActiveBetsMatcher.matches()) {
+                        System.out.println("BetHandler: Handling GetActiveBetsByStatus.");
                         group_name = getActiveBetsMatcher.group(1);
                         handleGetBetsByStatus(exchange, group_name, clientUsername, page, false);
                     } else if (getSettledBetsMatcher.matches()) {
+                        System.out.println("BetHandler: Handling GetSettledBetsByStatus.");
                         group_name = getSettledBetsMatcher.group(1);
                         handleGetBetsByStatus(exchange, group_name, clientUsername, page, true);
                     } else {
-                        System.out.println("no match. reached the end of get switch");
-                        exchange.sendResponseHeaders(405, -1);
+                        System.out.println("BetHandler: Invalid GET request.");
+                        sendResponse(exchange, 404, "{\"error\": \"BetHandler: endpoint does not exit\"}");
                     }
                     break;
                 case "POST":
                     if (buyBetMatcher.matches()) {
+                        System.out.println("BetHandler: Handling BuyBet.");
                         group_name = buyBetMatcher.group(1);
                         handleBuyBet(exchange, group_name, clientUsername);
                     } else {
-                        exchange.sendResponseHeaders(405, -1); // Method Not Allowed
+                        System.out.println("BetHandler: Invalid POST request.");
+                        sendResponse(exchange, 404, "{\"error\": \"BetHandler: endpoint does not exit\"}");
                     }
                     break;
                 case "PUT":
                     if (sellBetMatcher.matches()) {
+                        System.out.println("BetHandler: Handling SellBet.");
                         group_name = sellBetMatcher.group(1);
                         handleSellBet(exchange, group_name, clientUsername);
                     } else {
-                        //System.out.println("no match. reached the end of get switch pt 4");
-                        exchange.sendResponseHeaders(405, -1);
+                        System.out.println("BetHandler: Invalid PUT request.");
+                        sendResponse(exchange, 404, "{\"error\": \"BetHandler: endpoint does not exit\"}");
                     }
                     break;
                 default:
-                    exchange.sendResponseHeaders(405, -1); // Method Not Allowed
+                    sendResponse(exchange, 405, "{\"error\": \"BetHandler: method not allowed\"}");
                     break;
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            exchange.sendResponseHeaders(500, -1);
+            sendResponse(exchange, 500, "{\"error\": \"Bet service request failed.\"}");
         }
     }
 
@@ -190,12 +205,11 @@ public class BetHandler implements HttpHandler {
     }
 
     private void handleGetLeagues(HttpExchange exchange, String group_name, int page) throws IOException, SQLException {
-        // check if group has been deleted
         if (has_been_deleted(group_name)) {
-            exchange.sendResponseHeaders(410, -1);
+            sendResponse(exchange, 410, "{\"error\": \"Group has been deleted\"}");
             return;
         }
-        System.out.println("Group name: " + group_name);
+
         JSONArray jsonArray = new JSONArray();
         String query = "SELECT * FROM leagues LIMIT 50 OFFSET ? * 50";
         try (PreparedStatement statement = dbConnection.prepareStatement(query)) {
@@ -212,15 +226,13 @@ public class BetHandler implements HttpHandler {
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            String response = "Get league failed.";
-            sendResponse(exchange, 500, response);
+            sendResponse(exchange, 500, "{\"error\": \"Get leagues failed\"}");
         }
     }
 
     private void handleGetGamesByLeague(HttpExchange exchange, String group_name, String league_name, int page) throws IOException, SQLException {
-        // check if group has been deleted
         if (has_been_deleted(group_name)) {
-            exchange.sendResponseHeaders(410, -1);
+            sendResponse(exchange, 410, "{\"error\": \"Group has been deleted\"}");
             return;
         }
 
@@ -232,7 +244,6 @@ public class BetHandler implements HttpHandler {
         calendar.set(Calendar.MILLISECOND, 0);
         Timestamp startTime = new Timestamp(calendar.getTimeInMillis());
 
-        System.out.println("Group name: " + group_name+". League name: " + league_name);
         String query = "SELECT * FROM games WHERE league = ? AND game_start_time >= ? LIMIT 50 OFFSET ? * 50";
         JSONArray jsonArray = new JSONArray();
         try (PreparedStatement statement = dbConnection.prepareStatement(query)) {
@@ -263,20 +274,18 @@ public class BetHandler implements HttpHandler {
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            String response = "Get games in league failed.";
-            sendResponse(exchange, 500, response);
+            sendResponse(exchange, 500, "{\"error\": \"Get games in league failed\"}");
         }
     }
 
     private void handleGetGamesByID(HttpExchange exchange, String group_name, String league_name, int game_id) throws IOException, SQLException {
-        // check if group has been deleted
         try {
             if (has_been_deleted(group_name)) {
-                exchange.sendResponseHeaders(410, -1);
+                sendResponse(exchange, 410, "{\"error\": \"Group has been deleted\"}");
                 return;
             }
+
             JSONObject messageJson = new JSONObject();
-            System.out.println("Group name: " + group_name + ". Game ID: " + game_id);
             String query = "SELECT * FROM games WHERE game_id = ?";
             try (PreparedStatement statement = dbConnection.prepareStatement(query)) {
                 statement.setInt(1, game_id);
@@ -303,21 +312,19 @@ public class BetHandler implements HttpHandler {
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            String response = "Get games in league failed.";
-            sendResponse(exchange, 500, response);
+            sendResponse(exchange, 500, "{\"error\": \"Get game by id failed\"}");
         }
     }
 
     private void handleGetBetsByStatus(HttpExchange exchange, String group_name, String username, int page, boolean been_distributed) throws IOException, SQLException {
-        // check if group has been deleted
         try {
             if (has_been_deleted(group_name)) {
-                exchange.sendResponseHeaders(410, -1);
+                sendResponse(exchange, 410, "{\"error\": \"Group has been deleted\"}");
                 return;
             }
+
             roleInGroup(username, group_name);
             JSONArray jsonArray = new JSONArray();
-            System.out.println("Group name: " + group_name + ". Username: " + username);
             String query = "SELECT * FROM bets WHERE group_name = ? AND username = ? AND been_distributed = ? LIMIT 50 OFFSET ? * 50";
             String gameQuery = "SELECT * FROM games WHERE game_id = ?";
             try (PreparedStatement statement = dbConnection.prepareStatement(query)) {
@@ -370,26 +377,22 @@ public class BetHandler implements HttpHandler {
             }
         } catch (SQLException e) {
             e.printStackTrace();
-            String response = "Get games in league failed.";
-            sendResponse(exchange, 500, response);
+            sendResponse(exchange, 500, "{\"error\": \"Get bets failed\"}");
         }
     }
 
 
     private void handleBuyBet(HttpExchange exchange, String group_name, String username) throws IOException, SQLException {
-        // check if group has been deleted
         try {
             if (has_been_deleted(group_name) && !isGroupActive(group_name)) {
-                exchange.sendResponseHeaders(410, -1);
+                sendResponse(exchange, 410, "{\"error\": \"Group has been deleted or is inactive\"}");
                 return;
             }
+
             roleInGroup(username, group_name);
             InputStream inputStream = exchange.getRequestBody();
             String requestBody = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-            System.out.println("Received JSON payload: " + requestBody);
-
             JSONObject jsonObject = new JSONObject(requestBody);
-            //String updated_group_name = jsonObject.getString("group_name");
             int game_id = jsonObject.getInt("game_id");
             String bet_type = jsonObject.getString("type");
             float wagered = (float) jsonObject.getDouble("wagered");
@@ -399,6 +402,7 @@ public class BetHandler implements HttpHandler {
             float odds1 = 0.0f, odds2 = 0.0f;
             float line1 = 0.0f, line2 = 0.0f;
             String gameStatus = "";
+
             // atomically do the following
             dbConnection.setAutoCommit(false);
             try {
@@ -418,7 +422,7 @@ public class BetHandler implements HttpHandler {
 
                         } else {
                             dbConnection.rollback();
-                            sendResponse(exchange, 404, "Game not found.");
+                            sendResponse(exchange, 404, "{\"error\": \"Game not found\"}");
                             return;
                         }
                     }
@@ -427,7 +431,7 @@ public class BetHandler implements HttpHandler {
                 // Check status is "upcoming"
                 if (!"upcoming".equalsIgnoreCase(gameStatus)) {
                     dbConnection.rollback();
-                    sendResponse(exchange, 400, "Game is already being played or over.");
+                    sendResponse(exchange, 400, "{\"error\": \"Game is already being played or over.\"}");
                     return;
                 }
 
@@ -447,11 +451,11 @@ public class BetHandler implements HttpHandler {
                             amountToWin = wagered + (wagered * (odds2)/100);
                         }
                     } else {
-                        sendResponse(exchange, 400, "Invalid winner choice.");
+                        sendResponse(exchange, 400, "{\"error\": \"Invalid winner choice.\"}");
                         return;
                     }
                 } else {
-                    sendResponse(exchange, 400, "Invalid bet type.");
+                    sendResponse(exchange, 400, "{\"error\": \"Invalid bet type.\"}");
                     return;
                 }
 
@@ -493,8 +497,7 @@ public class BetHandler implements HttpHandler {
 
         } catch (SQLException e) {
             e.printStackTrace();
-            String response = "Get games in league failed.";
-            sendResponse(exchange, 500, response);
+            sendResponse(exchange, 500, "{\"error\": \"Buy bet failed.\"}");
         }
     }
 
@@ -502,16 +505,14 @@ public class BetHandler implements HttpHandler {
         // check if group has been deleted
         try {
             if (has_been_deleted(group_name) && !isGroupActive(group_name)) {
-                exchange.sendResponseHeaders(410, -1);
+                sendResponse(exchange, 410, "{\"error\": \"Group has been deleted or is inactive\"}");
                 return;
             }
             roleInGroup(username, group_name);
             InputStream inputStream = exchange.getRequestBody();
             String requestBody = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
-            System.out.println("Received JSON payload: " + requestBody);
 
             JSONObject jsonObject = new JSONObject(requestBody);
-            //String updated_group_name = jsonObject.getString("group_name");
             int bet_id = jsonObject.getInt("bet_id");
             float wageredAmount = 0;
             boolean betExists = false;
@@ -537,13 +538,13 @@ public class BetHandler implements HttpHandler {
 
                 if (!betExists) {
                     dbConnection.rollback();
-                    sendResponse(exchange, 404, "Bet not found.");
+                    sendResponse(exchange, 404, "{\"error\": \"Bet not found.\"}");
                     return;
                 }
 
                 if (beenDistributed) {
                     dbConnection.rollback();
-                    sendResponse(exchange, 400, "Bet has already been distributed and cannot be sold.");
+                    sendResponse(exchange, 400, "{\"error\": \"Bet has already been distributed/sold.\"}");
                     return;
                 }
 
@@ -563,8 +564,6 @@ public class BetHandler implements HttpHandler {
 
                 // Commit the transaction
                 dbConnection.commit();
-
-                // Send success response
                 sendResponse(exchange, 200, "Bet sold successfully.");
             } catch (SQLException e) {
                 dbConnection.rollback();
@@ -575,8 +574,7 @@ public class BetHandler implements HttpHandler {
 
         } catch (SQLException e) {
             e.printStackTrace();
-            String response = "Get games in league failed.";
-            sendResponse(exchange, 500, response);
+            sendResponse(exchange, 500, "{\"error\": \"Sell bet failed.\"}");
         }
     }
 }
