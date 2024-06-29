@@ -10,7 +10,7 @@ spec:
         spec:
           containers:
             - name: update-game-end-settle-bet
-              image: bryanwsebaraj/update
+              image: bryanwsebaraj/update:1.0
               args: ["updateGameEndSettleBet"]
               envFrom:
                 - configMapRef:

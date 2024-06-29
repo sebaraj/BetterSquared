@@ -10,7 +10,7 @@ spec:
         spec:
           containers:
             - name: update-groups
-              image: bryanwsebaraj/update
+              image: bryanwsebaraj/update:1.0
               args: ["updateGroups"]
               envFrom:
                 - configMapRef:

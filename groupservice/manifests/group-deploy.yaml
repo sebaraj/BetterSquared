@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: group
-          image: bryanwsebaraj/group
+          image: bryanwsebaraj/group:1.0
           ports:
             - containerPort: 6000
             - containerPort: 5432

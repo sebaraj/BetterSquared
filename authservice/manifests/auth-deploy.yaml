@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: auth
-          image: bryanwsebaraj/auth
+          image: bryanwsebaraj/auth:1.0
           ports:
             - containerPort: 5000
             - containerPort: 5432

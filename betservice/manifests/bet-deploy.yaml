@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: auth
-          image: bryanwsebaraj/bet
+          image: bryanwsebaraj/bet:1.0
           ports:
             - containerPort: 7000
             - containerPort: 5432

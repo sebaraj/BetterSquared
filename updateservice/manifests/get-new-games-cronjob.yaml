@@ -10,7 +10,7 @@ spec:
         spec:
           containers:
             - name: get-new-games
-              image: bryanwsebaraj/update
+              image: bryanwsebaraj/update:1.0
               args: ["getNewGames"]
               envFrom:
                 - configMapRef:

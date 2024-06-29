@@ -7,7 +7,7 @@ spec:
     spec:
       containers:
         - name: schedule-game-start
-          image: bryanwsebaraj/update
+          image: bryanwsebaraj/update:1.0
           args: ["scheduleGameStart"]
           envFrom:
             - configMapRef:
