@@ -67,7 +67,7 @@ Backend of a group-based, simulated sports betting app. Written in Java, utilizi
 
 ## Deploying:
 
-Note: I have intentionally left all env variables (in configmaps/secrets) visible and the files unencrypted for straight-forward deployment. This is NOT a suitable solution for deployment. If you would like to customize/change them, please see the respective yaml files.
+Note: I have intentionally left all env variables (in configmaps/secrets) visible and the files unencrypted for straight-forward deployment. This is NOT a suitable solution for a production environment. If you would like to customize/change them, please see the respective yaml files.
 
 ### PostgreSQL
 - Install PostgreSQL
