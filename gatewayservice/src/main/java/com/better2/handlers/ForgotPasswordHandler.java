@@ -8,6 +8,7 @@ package com.better2.gatewayservice;
 
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.Headers;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -40,7 +41,13 @@ public class ForgotPasswordHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-        if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+        handleCors(exchange);
+        String requestMethod = exchange.getRequestMethod();
+        System.out.println(requestMethod);
+        if ("OPTIONS".equalsIgnoreCase(requestMethod)) {
+            // For OPTIONS requests, just return successful response (200 OK)
+            exchange.sendResponseHeaders(200, -1);
+        } else if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
             try {
                 // Checking redis-cluster rate limiter by host IP
                 if (!isRequestAllowed(exchange)) {
@@ -88,6 +95,14 @@ public class ForgotPasswordHandler implements HttpHandler {
             sendResponse(exchange, 405, "{\"error\": \"Method not allowed.\"}");
         }
         exchange.close();
+    }
+
+    // Method to handle CORS headers (allowing all methods and headers)
+    private static void handleCors(HttpExchange exchange) {
+        Headers headers = exchange.getResponseHeaders();
+        headers.set("Access-Control-Allow-Origin", "*"); // Allow requests from all origins
+        headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS"); // Allow all HTTP methods
+        headers.set("Access-Control-Allow-Headers", "*"); // Allow all headers
     }
 
     private boolean isRequestAllowed(HttpExchange exchange) {

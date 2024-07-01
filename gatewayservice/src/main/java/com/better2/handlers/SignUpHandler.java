@@ -8,6 +8,7 @@ package com.better2.gatewayservice;
 
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.Headers;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -40,7 +41,12 @@ public class SignUpHandler implements HttpHandler {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-        if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+        handleCors(exchange);
+        String requestMethod = exchange.getRequestMethod();
+        if ("OPTIONS".equalsIgnoreCase(requestMethod)) {
+            // For OPTIONS requests, just return successful response (200 OK)
+            exchange.sendResponseHeaders(200, -1);
+        } else if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
             try {
                 // Checking redis-cluster rate limiter by host IP
                 if (!isRequestAllowed(exchange)) {
@@ -66,7 +72,7 @@ public class SignUpHandler implements HttpHandler {
                 }
 
                 // Receiving response from the authentication service
-                System.out.println("LoginHandler: Receiving response from auth service.");
+                System.out.println("SignUpHandler: Receiving response from auth service.");
                 InputStream authResponseStream;
                 int statusCode = conn.getResponseCode();
                 if (statusCode >= 200 && statusCode < 300) {
@@ -77,7 +83,7 @@ public class SignUpHandler implements HttpHandler {
                 String authResponse = new String(authResponseStream.readAllBytes(), StandardCharsets.UTF_8);
                 exchange.getResponseHeaders().set("Content-Type", "application/json; utf-8");
 
-                System.out.println("LoginHandler: Routing response back to client.");
+                System.out.println("SignUpHandler: Routing response back to client.");
                 sendResponse(exchange, statusCode, authResponse);
 
             } catch (Exception e) {
@@ -89,6 +95,15 @@ public class SignUpHandler implements HttpHandler {
         }
         exchange.close();
     }
+
+    // Method to handle CORS headers (allowing all methods and headers)
+    private static void handleCors(HttpExchange exchange) {
+        Headers headers = exchange.getResponseHeaders();
+        headers.set("Access-Control-Allow-Origin", "*"); // Allow requests from all origins
+        headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS"); // Allow all HTTP methods
+        headers.set("Access-Control-Allow-Headers", "*"); // Allow all headers
+    }
+
 
     private boolean isRequestAllowed(HttpExchange exchange) {
         String clientIP = exchange.getRemoteAddress().getAddress().getHostAddress();
