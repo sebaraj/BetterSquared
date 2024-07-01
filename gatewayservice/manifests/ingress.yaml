@@ -6,6 +6,8 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-body-size: "0"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"  # Add this annotationg
+    nginx.ingress.kubernetes.io/enable-cors: "true"
 spec:
   tls:
     - hosts:
@@ -22,3 +24,13 @@ spec:
                 name: gateway
                 port:
                   number: 8080
+    - host: localhost
+      http:
+        paths:
+           - path: /
+             pathType: Prefix
+             backend:
+               service:
+                 name: gateway
+                 port:
+                   number: 8080

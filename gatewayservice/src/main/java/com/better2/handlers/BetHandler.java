@@ -8,6 +8,7 @@ package com.better2.gatewayservice;
 
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.Headers;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -43,6 +44,13 @@ public class BetHandler implements HttpHandler {
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         try {
+            handleCors(exchange);
+            String requestMethod = exchange.getRequestMethod();
+            if ("OPTIONS".equalsIgnoreCase(requestMethod)) {
+                // For OPTIONS requests, just return successful response (200 OK)
+                exchange.sendResponseHeaders(200, -1);
+                return;
+            }
             // Checking redis-cluster rate limiter by host IP
             if (!isRequestAllowed(exchange)) {
                 sendResponse(exchange, 429, "{\"error\": \"Rate limit exceeded\"}");
@@ -95,6 +103,14 @@ public class BetHandler implements HttpHandler {
             e.printStackTrace();
             sendResponse(exchange, 500, "{\"error\": \"Bet service response failed.\"}");
         }
+    }
+
+    // Method to handle CORS headers (allowing all methods and headers)
+    private static void handleCors(HttpExchange exchange) {
+        Headers headers = exchange.getResponseHeaders();
+        headers.set("Access-Control-Allow-Origin", "*"); // Allow requests from all origins
+        headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS"); // Allow all HTTP methods
+        headers.set("Access-Control-Allow-Headers", "*"); // Allow all headers
     }
 
     private boolean isRequestAllowed(HttpExchange exchange) {
