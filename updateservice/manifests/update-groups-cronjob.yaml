@@ -12,6 +12,7 @@ spec:
             - name: update-groups
               image: bryanwsebaraj/update:1.0
               args: ["updateGroups"]
+              imagePullPolicy: Always
               envFrom:
                 - configMapRef:
                     name: update-configmap
