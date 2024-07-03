@@ -113,7 +113,7 @@ public class GroupHandler implements HttpHandler {
                     } else if (makeAdminMatcher.matches()) {
                         System.out.println("GroupHandler: Handling MakeAdmin.");
                         group_name = makeAdminMatcher.group(1);
-                        handleMakeAdmin(exchange, group_name, clientUsername);
+                        handleToggleAdmin(exchange, group_name, clientUsername);
                     } else {
                         System.out.println("GroupHandler: Invalid PUT request.");
                         sendResponse(exchange, 404, "{\"error\": \"GroupService: endpoint does not exit\"}");
@@ -188,10 +188,10 @@ public class GroupHandler implements HttpHandler {
             sendResponse(exchange, 410, "{\"error\": \"Group has been deleted\"}");
             return;
         }
-        if (roleInGroup(username, group_name) > 3) {
-            sendResponse(exchange, 403, "{\"error\": \"User not in group\"}");
-            return;
-        }
+        //if (roleInGroup(username, group_name) > 3) {
+        //    sendResponse(exchange, 403, "{\"error\": \"User not in group\"}");
+        //    return;
+       // }
         String query = "SELECT * FROM groups WHERE group_name = ?";
         try (PreparedStatement statement = dbConnection.prepareStatement(query)) {
             statement.setString(1, group_name);
@@ -477,7 +477,7 @@ public class GroupHandler implements HttpHandler {
                 return;
             }
             JSONArray jsonArray = new JSONArray();
-            String betQuery  = "SELECT * FROM accounts WHERE group_name = ? ORDER BY group_name LIMIT 50 OFFSET ? * 50";
+            String betQuery  = "SELECT * FROM accounts WHERE group_name = ? ORDER BY current_cash DESC LIMIT 50 OFFSET ? * 50";
             try (PreparedStatement betStatement = dbConnection.prepareStatement(betQuery)) {
                 betStatement.setString(1, group_name);
                 betStatement.setInt(2, page);
@@ -507,8 +507,9 @@ public class GroupHandler implements HttpHandler {
         }
     }
 
-    private void handleMakeAdmin(HttpExchange exchange, String group_name, String username) throws IOException, SQLException {
+    private void handleToggleAdmin(HttpExchange exchange, String group_name, String username) throws IOException, SQLException {
         String targetUsername = "";
+        int inputRole = 2;
         try {
             if (has_been_deleted(group_name)) {
                 sendResponse(exchange, 410, "{\"error\": \"Group has already been deleted\"}");
@@ -525,18 +526,17 @@ public class GroupHandler implements HttpHandler {
             String requestBody = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
             JSONObject jsonObject = new JSONObject(requestBody);
             targetUsername = jsonObject.getString("admin");
+            inputRole = jsonObject.getInt("role");
+            System.out.println("GroupHandler: Changing " + targetUsername + " to " + inputRole);
 
             // Checking current role of target user for promotion
             int targetRole = roleInGroup(targetUsername, group_name);
             if (targetRole == 1) {
                 sendResponse(exchange, 400, "{\"error\": \"Cannot demote group creator to admin.\"}");
                 return;
-            } else if (targetRole == 2) {
-                sendResponse(exchange, 400, "{\"error\": \"Target user already admin.\"}");
-                return;
             }
 
-            int adminRole = 2;
+            int adminRole = (inputRole == 2) ? 2 : 3;
             String update = "UPDATE accounts SET group_role_id = ? WHERE username = ? AND group_name = ?";
             try (PreparedStatement statement = dbConnection.prepareStatement(update)) {
                 statement.setInt(1, adminRole);
@@ -563,10 +563,10 @@ public class GroupHandler implements HttpHandler {
                 sendResponse(exchange, 410, "{\"error\": \"Group has already been deleted\"}");
                 return;
             }
-            if (roleInGroup(username, group_name) > 3) {
-                sendResponse(exchange, 403, "{\"error\": \"Only group members can acccess user information.\"}");
-                return;
-            }
+            //if (roleInGroup(username, group_name) > 3) {
+            //    sendResponse(exchange, 403, "{\"error\": \"Only group members can acccess user information.\"}");
+            //    return;
+            //}
 
             JSONArray jsonArray = new JSONArray();
             String accountQuery = "SELECT * FROM accounts WHERE username = ? AND group_name = ?";
@@ -578,7 +578,16 @@ public class GroupHandler implements HttpHandler {
                         JSONObject accountJson = new JSONObject();
                         accountJson.put("username", resultSet.getString("username"));
                         accountJson.put("group_name", resultSet.getString("group_name"));
-                        accountJson.put("group_role_id", resultSet.getInt("group_role_id"));
+
+                        String role = "Group Member";
+                        // this is probably faster than waiting on a SQL read + client doesnt have to transform string
+                        if (resultSet.getInt("group_role_id") == 1) {
+                            role = "Group Creator";
+                        } else if (resultSet.getInt("group_role_id") == 2) {
+                            role = "Group Administrator";
+                        }
+                        accountJson.put("group_role", role);
+                        //accountJson.put("group_role_id", resultSet.getInt("group_role_id"));
                         accountJson.put("current_cash", resultSet.getFloat("current_cash"));
                         jsonArray.put(accountJson);
                     } else {
@@ -611,9 +620,11 @@ public class GroupHandler implements HttpHandler {
                                 messageJson.put("team1", gameResultSet.getString("team1"));
                                 messageJson.put("odds1", gameResultSet.getFloat("odds1"));
                                 messageJson.put("line1", gameResultSet.getFloat("line1"));
+                                messageJson.put("score1", gameResultSet.getFloat("score1"));
                                 messageJson.put("team2", gameResultSet.getString("team2"));
                                 messageJson.put("odds2", gameResultSet.getFloat("odds2"));
                                 messageJson.put("line2", gameResultSet.getFloat("line2"));
+                                messageJson.put("score2", gameResultSet.getFloat("score2"));
                                 messageJson.put("last_update", gameResultSet.getDate("last_update"));
                                 messageJson.put("game_start_time", gameResultSet.getDate("game_start_time"));
                                 messageJson.put("status", gameResultSet.getString("status"));

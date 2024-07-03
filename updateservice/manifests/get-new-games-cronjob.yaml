@@ -12,6 +12,7 @@ spec:
             - name: get-new-games
               image: bryanwsebaraj/update:1.0
               args: ["getNewGames"]
+              imagePullPolicy: Always
               envFrom:
                 - configMapRef:
                     name: update-configmap

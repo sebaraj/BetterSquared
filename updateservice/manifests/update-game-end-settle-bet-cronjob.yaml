@@ -3,7 +3,7 @@ kind: CronJob
 metadata:
   name: update-game-end-settle-bet-cronjob
 spec:
-  schedule: "0 */3 * * *"
+  schedule: "0 */3 * * *" # 0 */3
   jobTemplate:
     spec:
       template:
@@ -12,6 +12,7 @@ spec:
             - name: update-game-end-settle-bet
               image: bryanwsebaraj/update:1.0
               args: ["updateGameEndSettleBet"]
+              imagePullPolicy: Always
               envFrom:
                 - configMapRef:
                     name: update-configmap

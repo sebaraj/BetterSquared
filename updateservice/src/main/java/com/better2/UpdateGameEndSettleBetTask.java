@@ -17,6 +17,10 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.sql.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -28,18 +32,18 @@ public class UpdateGameEndSettleBetTask implements Job {
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
         System.out.println("UpdateGameEndSettleBetTask: Executing job");
-        LocalDate today = LocalDate.now();
+        //LocalDateTime today = LocalDateTime.now(ZoneOffset.UTC);
         API_KEY = System.getenv("UPDATE_API_KEY");
         if (API_KEY == null) {
             throw new JobExecutionException("API key not found in environment variables");
         }
-        callApiAndGetFinishedGames(today.format(DateTimeFormatter.ISO_DATE));
+        callApiAndGetFinishedGames(); // today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"))
     }
 
-    private void callApiAndGetFinishedGames(String date) {
+    private void callApiAndGetFinishedGames() {
         try {
             // Constructing API connection for specific date
-            API_URL ="https://api.the-odds-api.com/v4/sports/basketball_nba/scores/?apiKey=" + API_KEY + "&daysFrom=" + date;
+            API_URL ="https://api.the-odds-api.com/v4/sports/baseball_mlb/scores/?apiKey=" + API_KEY + "&daysFrom=2";
             URL url = new URL(API_URL);
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
@@ -76,32 +80,38 @@ public class UpdateGameEndSettleBetTask implements Job {
             PreparedStatement updateStmt = dbConnection.prepareStatement(updateGameQuery);
 
             for (GameScore game : games) {
-                // Checking if the game already exists
-                checkStmt.setString(1, game.getId());
-                ResultSet rs = checkStmt.executeQuery();
-                int gameId = 0, count = 0;
-                if (rs.next()) {
-                    gameId = rs.getInt("id");
-                    count = 1;
-                }
-                rs.close();
-                GameScore.Score score1 = game.getScores().get(0);
-                GameScore.Score score2 = game.getScores().get(1);
-                // If game exists, update it
-                if (count == 1 && game.getCompleted()) {
-                    updateStmt.setDate(1, Date.valueOf(LocalDate.now()));
-                    updateStmt.setString(2, "settled");
-                    int score1Val = Integer.parseInt(score1.getScore());
-                    int score2Val = Integer.parseInt(score2.getScore());
-                    updateStmt.setInt(3, score1Val);
-                    updateStmt.setString(4, score1.getName());
-                    updateStmt.setInt(5, score2Val);
-                    updateStmt.setString(6, score2.getName());
-                    String winner = (score1Val > score2Val) ? score1.getName() : score2.getName();
-                    updateStmt.setString(7, winner);
-                    updateStmt.setString(8, game.getId());
-                    updateStmt.executeUpdate();
-                    settleBetsWithGameID(gameId, winner);
+                // Checks if game is done/score is updated
+                List<GameScore.Score> scores = game.getScores();
+                if (scores != null && !scores.isEmpty()) {
+                    // Checking if the game already exists
+                    checkStmt.setString(1, game.getId());
+                    ResultSet rs = checkStmt.executeQuery();
+                    int gameId = 0, count = 0;
+                    if (rs.next()) {
+                        gameId = rs.getInt("id");
+                        count = 1;
+                    }
+                    rs.close();
+                    GameScore.Score score1 = scores.get(0);
+                    GameScore.Score score2 = scores.get(1);
+                    //ZonedDateTime zonedDateTime = ZonedDateTime.parse(bookmaker.getLast_update(), DateTimeFormatter.ISO_DATE_TIME);
+                    // If game exists, update it
+                    if (count == 1 && game.getCompleted()) {
+                        updateStmt.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
+                        //updateStmt.setDate(1, Date.valueOf(LocalDate.now()));
+                        updateStmt.setString(2, "settled");
+                        int score1Val = Integer.parseInt(score1.getScore());
+                        int score2Val = Integer.parseInt(score2.getScore());
+                        updateStmt.setInt(3, score1Val);
+                        updateStmt.setString(4, score1.getName());
+                        updateStmt.setInt(5, score2Val);
+                        updateStmt.setString(6, score2.getName());
+                        String winner = (score1Val > score2Val) ? score1.getName() : score2.getName();
+                        updateStmt.setString(7, winner);
+                        updateStmt.setString(8, game.getId());
+                        updateStmt.executeUpdate();
+                        settleBetsWithGameID(gameId, winner);
+                    }
                 }
 
             }

@@ -74,6 +74,8 @@ kubectl apply -f ./jwtcache/manifests/
 
 kubectl apply -f ./jwtcache/twemproxy/manifests/
 
+sleep 5
+
 kubectl apply -f ./gatewayservice/manifests/configmap.yaml
 
 kubectl apply -f ./gatewayservice/manifests/gateway-deploy.yaml
