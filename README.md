@@ -50,10 +50,10 @@ Backend of a group-based, simulated sports betting app. Written in Java, utilizi
 ### Update Cronjobs
 - Performs the following non-client-facing jobs:
 
-  - Adds new games on information from api call (runs as a scheduled cronjob on non-persistent pods)
-  - Updates game status from "upcoming" to "playing" when game starts via Quartz scheduler and appropriate triggers (runs on persistent pod)
-  - Updates game status from "playing" to "settled" based on information from api call and distributes winnings to users on respective bets (runs as a scheduled cronjob on non-persistent pods)
-  - Updates group status after the last active day (runs as a scheduled cronjob on non-persistent pods)
+  - Adds new games on information from api call (runs as a scheduled cronjob on non-persistent containers)
+  - Updates game status from "upcoming" to "playing" when game starts via Quartz scheduler and appropriate triggers (runs on a persistent container)
+  - Updates game status from "playing" to "settled" based on information from api call and distributes winnings to users on respective bets (runs as a scheduled cronjob on non-persistent containers)
+  - Updates group status after the last active day (runs as a scheduled cronjob on non-persistent containers)
 - Completed jobs/pods are manually garbage collected every 6 hours (see ./cleanpods/manifests)
 
 ### RabbitMQ

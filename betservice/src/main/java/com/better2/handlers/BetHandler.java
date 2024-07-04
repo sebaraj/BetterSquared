@@ -36,7 +36,7 @@ public class BetHandler implements HttpHandler {
     private Pattern getGamesByLeaguePattern = Pattern.compile("/bet/([^/]+)/view/([^/]+)"); // GET /bet/{group_name}/view/{league_name}
     private Pattern getGamesByIDPattern = Pattern.compile("/bet/([^/]+)/view/([^/]+)/([^/]+)"); // GET /bet/{group_name}/view/{league_name}/{game_id}
     private Pattern buyBetPattern = Pattern.compile("/bet/([^/]+)/buy"); // POST /bet/{group_name}/buy
-    private Pattern sellBetPattern = Pattern.compile("/bet/([^/]+)/sell"); // DELETE /bet/{group_name}/sell
+    private Pattern sellBetPattern = Pattern.compile("/bet/([^/]+)/sell"); // PUT /bet/{group_name}/sell
     private Pattern getActiveBetsPattern = Pattern.compile("/bet/([^/]+)/active"); // GET /bet/{group_name}/active
     private Pattern getSettledBetsPattern = Pattern.compile("/bet/([^/]+)/settled"); // GET /bet/{group_name}/settled
 
@@ -262,8 +262,8 @@ public class BetHandler implements HttpHandler {
                     messageJson.put("odds2", resultSet.getFloat("odds2"));
                     messageJson.put("line2", resultSet.getFloat("line2"));
                     messageJson.put("score2", resultSet.getInt("score2"));
-                    messageJson.put("last_update", resultSet.getDate("last_update"));
-                    messageJson.put("game_start_time", resultSet.getDate("game_start_time"));
+                    messageJson.put("last_update", resultSet.getTimestamp("last_update"));
+                    messageJson.put("game_start_time", resultSet.getTimestamp("game_start_time"));
                     messageJson.put("status", resultSet.getString("status"));
                     messageJson.put("winner", resultSet.getString("winner"));
                     messageJson.put("league", resultSet.getString("league"));
@@ -300,8 +300,8 @@ public class BetHandler implements HttpHandler {
                         messageJson.put("odds2", resultSet.getFloat("odds2"));
                         messageJson.put("line2", resultSet.getFloat("line2"));
                         messageJson.put("score2", resultSet.getInt("score2"));
-                        messageJson.put("last_update", resultSet.getDate("last_update"));
-                        messageJson.put("game_start_time", resultSet.getDate("game_start_time"));
+                        messageJson.put("last_update", resultSet.getTimestamp("last_update"));
+                        messageJson.put("game_start_time", resultSet.getTimestamp("game_start_time"));
                         messageJson.put("status", resultSet.getString("status"));
                         messageJson.put("winner", resultSet.getString("winner"));
                         messageJson.put("league", resultSet.getString("league"));
@@ -342,7 +342,7 @@ public class BetHandler implements HttpHandler {
                         messageJson.put("wagered", resultSet.getFloat("wagered"));
                         messageJson.put("amount_to_win", resultSet.getFloat("amount_to_win"));
                         messageJson.put("picked_winner", resultSet.getString("picked_winner"));
-                        messageJson.put("time_placed", resultSet.getDate("time_placed"));
+                        messageJson.put("time_placed", resultSet.getTimestamp("time_placed"));
                         messageJson.put("been_distributed", resultSet.getBoolean("been_distributed"));
                         messageJson.put("is_parlay", resultSet.getBoolean("is_parlay"));
                         try (PreparedStatement gameStatement = dbConnection.prepareStatement(gameQuery)) {
@@ -353,13 +353,13 @@ public class BetHandler implements HttpHandler {
                                     messageJson.put("team1", gameResultSet.getString("team1"));
                                     messageJson.put("odds1", gameResultSet.getFloat("odds1"));
                                     messageJson.put("line1", gameResultSet.getFloat("line1"));
-                                    messageJson.put("score1", resultSet.getInt("score1"));
+                                    messageJson.put("score1", gameResultSet.getInt("score1"));
                                     messageJson.put("team2", gameResultSet.getString("team2"));
                                     messageJson.put("odds2", gameResultSet.getFloat("odds2"));
                                     messageJson.put("line2", gameResultSet.getFloat("line2"));
-                                    messageJson.put("score2", resultSet.getInt("score2"));
-                                    messageJson.put("last_update", gameResultSet.getDate("last_update"));
-                                    messageJson.put("game_start_time", gameResultSet.getDate("game_start_time"));
+                                    messageJson.put("score2", gameResultSet.getInt("score2"));
+                                    messageJson.put("last_update", gameResultSet.getTimestamp("last_update"));
+                                    messageJson.put("game_start_time", gameResultSet.getTimestamp("game_start_time"));
                                     messageJson.put("status", gameResultSet.getString("status"));
                                     messageJson.put("winner", gameResultSet.getString("winner"));
                                     messageJson.put("league", gameResultSet.getString("league"));
@@ -402,6 +402,7 @@ public class BetHandler implements HttpHandler {
             float odds1 = 0.0f, odds2 = 0.0f;
             float line1 = 0.0f, line2 = 0.0f;
             String gameStatus = "";
+            System.out.println("BetHandler: Preparing DB statements");
 
             // atomically do the following
             dbConnection.setAutoCommit(false);
@@ -427,6 +428,7 @@ public class BetHandler implements HttpHandler {
                         }
                     }
                 }
+                System.out.println("BetHandler: Checking if game is available to bet");
 
                 // Check status is "upcoming"
                 if (!"upcoming".equalsIgnoreCase(gameStatus)) {
@@ -440,15 +442,15 @@ public class BetHandler implements HttpHandler {
                 if ("h2h".equalsIgnoreCase(bet_type)) {
                     if (team1.equalsIgnoreCase(picked_winner)) {
                         if (odds1 < 0) {
-                            amountToWin = wagered + (wagered * 100/(-odds1));
+                            amountToWin = (wagered * 100/(-odds1));
                         } else {
-                            amountToWin = wagered + (wagered * (odds1)/100);
+                            amountToWin = (wagered * (odds1)/100);
                         }
                     } else if (team2.equalsIgnoreCase(picked_winner)) {
                         if (odds2 < 0) {
-                            amountToWin = wagered + (wagered * 100/(-odds2));
+                            amountToWin = (wagered * 100/(-odds2));
                         } else {
-                            amountToWin = wagered + (wagered * (odds2)/100);
+                            amountToWin = (wagered * (odds2)/100);
                         }
                     } else {
                         sendResponse(exchange, 400, "{\"error\": \"Invalid winner choice.\"}");
@@ -459,6 +461,7 @@ public class BetHandler implements HttpHandler {
                     return;
                 }
 
+                System.out.println("BetHandler: Inserting bet into DB");
                 // Insert into bets
                 try (PreparedStatement insertBetStatement = dbConnection.prepareStatement(
                         "INSERT INTO bets (game_id, username, type, wagered, picked_winner, amount_to_win, been_distributed, is_parlay, group_name) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")) {

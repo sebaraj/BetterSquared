@@ -608,8 +608,8 @@ public class GroupHandler implements HttpHandler {
                         messageJson.put("wagered", resultSet.getFloat("wagered"));
                         messageJson.put("amount_to_win", resultSet.getFloat("amount_to_win"));
                         messageJson.put("picked_winner", resultSet.getString("picked_winner"));
-                        messageJson.put("time_placed", resultSet.getDate("time_placed"));
-                        messageJson.put("been_distributed", resultSet.getBoolean("current_cash"));
+                        messageJson.put("time_placed", resultSet.getTimestamp("time_placed"));
+                        messageJson.put("been_distributed", resultSet.getBoolean("been_distributed"));
                         messageJson.put("is_parlay", resultSet.getBoolean("is_parlay"));
 
                         String gameQuery = "SELECT * FROM games WHERE game_id = ?";
@@ -620,13 +620,13 @@ public class GroupHandler implements HttpHandler {
                                 messageJson.put("team1", gameResultSet.getString("team1"));
                                 messageJson.put("odds1", gameResultSet.getFloat("odds1"));
                                 messageJson.put("line1", gameResultSet.getFloat("line1"));
-                                messageJson.put("score1", gameResultSet.getFloat("score1"));
+                                messageJson.put("score1", gameResultSet.getInt("score1"));
                                 messageJson.put("team2", gameResultSet.getString("team2"));
                                 messageJson.put("odds2", gameResultSet.getFloat("odds2"));
                                 messageJson.put("line2", gameResultSet.getFloat("line2"));
-                                messageJson.put("score2", gameResultSet.getFloat("score2"));
-                                messageJson.put("last_update", gameResultSet.getDate("last_update"));
-                                messageJson.put("game_start_time", gameResultSet.getDate("game_start_time"));
+                                messageJson.put("score2", gameResultSet.getInt("score2"));
+                                messageJson.put("last_update", gameResultSet.getTimestamp("last_update"));
+                                messageJson.put("game_start_time", gameResultSet.getTimestamp("game_start_time"));
                                 messageJson.put("status", gameResultSet.getString("status"));
                                 messageJson.put("winner", gameResultSet.getString("winner"));
                                 messageJson.put("league", gameResultSet.getString("league"));
