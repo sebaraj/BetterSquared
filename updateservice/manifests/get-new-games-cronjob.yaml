@@ -3,7 +3,7 @@ kind: CronJob
 metadata:
   name: get-new-games-cronjob
 spec:
-  schedule: "0 1 * * *"
+  schedule: "0 1 * * *" # 0 1
   jobTemplate:
     spec:
       template:

@@ -26,3 +26,4 @@ data:
   RL_PORT: "6379"
   RL_REQUEST_LIMIT: "500"
   RL_TIME_WINDOW: "60"
+  FRONTEND_ADDR: "https://bettersquared.com:8080"

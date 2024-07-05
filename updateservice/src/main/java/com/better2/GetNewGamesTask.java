@@ -120,7 +120,7 @@ public class GetNewGamesTask implements Job {
                     insertStmt.setString(5, game.getAway_team());
                     insertStmt.setFloat(6, outcome1.getPrice());
                     insertStmt.setFloat(7, outcome2.getPrice());
-                    updateStmt.setTimestamp(5, Timestamp.valueOf(zonedDateTime.toLocalDateTime()));
+                    insertStmt.setTimestamp(8, Timestamp.valueOf(zonedDateTime.toLocalDateTime()));
                     insertStmt.setString(9, "upcoming");
                     insertStmt.executeUpdate();
                 }

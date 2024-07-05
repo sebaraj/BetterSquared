@@ -45,6 +45,7 @@ public class SignUpHandler implements HttpHandler {
         String requestMethod = exchange.getRequestMethod();
         if ("OPTIONS".equalsIgnoreCase(requestMethod)) {
             // For OPTIONS requests, just return successful response (200 OK)
+            exchange.getResponseHeaders().set("Access-Control-Allow-Origin", "http://bettersquared.com:8080");
             exchange.sendResponseHeaders(200, -1);
         } else if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
             try {
@@ -99,9 +100,10 @@ public class SignUpHandler implements HttpHandler {
     // Method to handle CORS headers (allowing all methods and headers)
     private static void handleCors(HttpExchange exchange) {
         Headers headers = exchange.getResponseHeaders();
-        headers.set("Access-Control-Allow-Origin", "*"); // Allow requests from all origins
+        headers.set("Access-Control-Allow-Origin", System.getenv("FRONTEND_ADDR")); // Allow requests from all origins
         headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS"); // Allow all HTTP methods
-        headers.set("Access-Control-Allow-Headers", "*"); // Allow all headers
+        headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization"); // Allow all headers
+        headers.set("Access-Control-Allow-Credentials", "true");
     }
 
 

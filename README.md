@@ -104,7 +104,12 @@ Note: I have intentionally left all env variables (in configmaps/secrets) visibl
 
 ### Self-signed certificate
 - Generate your own self-signed certificate for TLS:
-  - In the root of this project directory, run: `openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN=better2.com"`.
+  - In the root of this project directory, run: 
+  - `openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt -config openssl.cnf`
+  - `sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain tls.crt`
+- Install the Certificate in Your Browser:
+  - Go to chrome://settings/security
+  - Under "Manage certificates", import tls.crt and trust it.
 
 ### /etc/hosts
 - Add `127.0.0.1 better2.com`, `127.0.0.1 kubernetes.docker.internal`, and `{minikube_ip} host.minikube.internal` to /etc/hosts (need sudo permissions).
