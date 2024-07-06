@@ -142,10 +142,15 @@ Note: I have intentionally left all env variables (in configmaps/secrets) visibl
 - Infrastructure:
   - Add rigorous testing suite: unit tests, docker build time tests, end-to-end tests, and performance tests
   - Configure all Postgres connections to use TLS and implement asynchronous, streaming replication for Postgres
-  - Switch internal HTTP w/ JSON (not AMQP) service-to-service messages to gRPC
+  - Switch internal (synchronous) HTTP w/ JSON (not AMQP) service-to-service messages to gRPC
   - Implement logging framework (log4j)
   - Re-draw backend architecture using proper tooling
 - Features:
+  - Provide user  
   - Add more leagues/bet types
   - Implement parlay bets
   - Implement ability to restrict groups to a subset of leagues
+- Deploy to Cloud Platform
+  - Switch to more rigorous identity and access management system
+  - Define infrastructure via Terraform
+  - Switch to CA certificates

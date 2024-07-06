@@ -21,10 +21,15 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Date;
+import java.sql.Timestamp;
+import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.Map;
 import java.util.HashMap;
+
 
 public class GroupHandler implements HttpHandler {
 
@@ -199,9 +204,9 @@ public class GroupHandler implements HttpHandler {
                 if (resultSet.next()) {
                     JSONObject messageJson = new JSONObject();
                     messageJson.put("group_name", resultSet.getString("group_name"));
-                    messageJson.put("created_at", resultSet.getDate("created_at"));
-                    messageJson.put("start_date", resultSet.getDate("start_date"));
-                    messageJson.put("end_date", resultSet.getDate("end_date"));
+                    messageJson.put("created_at", resultSet.getTimestamp("created_at"));
+                    messageJson.put("start_date", resultSet.getTimestamp("start_date"));
+                    messageJson.put("end_date", resultSet.getTimestamp("end_date"));
                     messageJson.put("is_active", resultSet.getBoolean("is_active"));
                     messageJson.put("starting_cash", resultSet.getFloat("starting_cash"));
                     String message = messageJson.toString();
@@ -223,9 +228,14 @@ public class GroupHandler implements HttpHandler {
 
             JSONObject jsonObject = new JSONObject(requestBody);
             String group_name = jsonObject.getString("group_name");
-            Date start_date = Date.valueOf(jsonObject.getString("start_date"));
-            Date end_date = Date.valueOf(jsonObject.getString("end_date"));
-            boolean is_active = start_date.before(new Date(System.currentTimeMillis()));
+
+            DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE_TIME;
+            OffsetDateTime startDateTime = OffsetDateTime.parse(jsonObject.getString("start_date"), formatter);
+            OffsetDateTime endDateTime = OffsetDateTime.parse(jsonObject.getString("end_date"), formatter);
+            Timestamp start_date = Timestamp.valueOf(startDateTime.toLocalDateTime());
+            Timestamp end_date = Timestamp.valueOf(endDateTime.toLocalDateTime());
+
+            boolean is_active = start_date.before(new Timestamp(System.currentTimeMillis()));
             float starting_cash = (float) jsonObject.getDouble("starting_cash");
             try {
                 // Begin transaction
@@ -233,8 +243,8 @@ public class GroupHandler implements HttpHandler {
                 String insertGroup = "INSERT INTO groups (group_name, start_date, end_date, is_active, starting_cash) VALUES (?,?,?,?,?)";
                 try (PreparedStatement preparedStatement = dbConnection.prepareStatement(insertGroup)) {
                     preparedStatement.setString(1, group_name);
-                    preparedStatement.setDate(2, start_date);
-                    preparedStatement.setDate(3, end_date);
+                    preparedStatement.setTimestamp(2, start_date);
+                    preparedStatement.setTimestamp(3, end_date);
                     preparedStatement.setBoolean(4, is_active);
                     preparedStatement.setFloat(5, starting_cash);
                     preparedStatement.executeUpdate();
@@ -335,12 +345,17 @@ public class GroupHandler implements HttpHandler {
             InputStream inputStream = exchange.getRequestBody();
             String requestBody = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
             JSONObject jsonObject = new JSONObject(requestBody);
-            Date updated_start_date = Date.valueOf(jsonObject.getString("start_date"));
-            Date updated_end_date = Date.valueOf(jsonObject.getString("end_date"));
-            boolean updated_is_active = updated_start_date.before(new Date(System.currentTimeMillis()));
+
+            DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE_TIME;
+            OffsetDateTime updatedStartDateTime = OffsetDateTime.parse(jsonObject.getString("start_date"), formatter);
+            OffsetDateTime updatedEndDateTime = OffsetDateTime.parse(jsonObject.getString("end_date"), formatter);
+            Timestamp updated_start_date = Timestamp.valueOf(updatedStartDateTime.toLocalDateTime());
+            Timestamp updated_end_date = Timestamp.valueOf(updatedEndDateTime.toLocalDateTime());
+
+            boolean updated_is_active = updated_start_date.before(new Timestamp(System.currentTimeMillis()));
             float updated_starting_cash = (float) jsonObject.getDouble("starting_cash");
             boolean isActive;
-            Date old_start_date, old_end_date;
+            Timestamp old_start_date, old_end_date;
             System.out.println("GroupHandler: Executing initial query for group update");
             String query = "SELECT * FROM groups WHERE group_name = ?";
             try (PreparedStatement statement = dbConnection.prepareStatement(query)) {
@@ -348,8 +363,8 @@ public class GroupHandler implements HttpHandler {
                 try (ResultSet resultSet = statement.executeQuery()) {
                     if (resultSet.next()) {
                         isActive =  resultSet.getBoolean("is_active");
-                        old_start_date = resultSet.getDate("start_date");
-                        old_end_date = resultSet.getDate("end_date");
+                        old_start_date = resultSet.getTimestamp("start_date");
+                        old_end_date = resultSet.getTimestamp("end_date");
                     } else {
                         throw new SQLException("Group not found");
                     }
@@ -364,7 +379,7 @@ public class GroupHandler implements HttpHandler {
                 }
                 String update = "UPDATE groups SET end_date = ? WHERE group_name = ?";
                 try (PreparedStatement statement = dbConnection.prepareStatement(update)) {
-                    statement.setDate(1, updated_end_date);
+                    statement.setTimestamp(1, updated_end_date);
                     statement.setString(2, group_name);
                     int rowsAffected = statement.executeUpdate();
 
@@ -380,8 +395,8 @@ public class GroupHandler implements HttpHandler {
             } else if (!isActive && !old_end_date.before(current_time)) {
                 String update = "UPDATE groups SET start_date = ?, end_date = ?, starting_cash = ?, is_active = ? WHERE group_name = ?";
                 try (PreparedStatement statement = dbConnection.prepareStatement(update)) {
-                    statement.setDate(1, updated_start_date);
-                    statement.setDate(2, updated_end_date);
+                    statement.setTimestamp(1, updated_start_date);
+                    statement.setTimestamp(2, updated_end_date);
                     statement.setFloat(3, updated_starting_cash);
                     statement.setBoolean(4, updated_is_active);
                     statement.setString(5, group_name);

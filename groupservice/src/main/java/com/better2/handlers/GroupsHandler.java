@@ -21,6 +21,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Date;
+import java.sql.Timestamp;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.Map;
@@ -144,8 +145,8 @@ public class GroupsHandler implements HttpHandler {
                             groupStatement.setString(1, resultSet.getString("group_name"));
                             try (ResultSet groupResultSet = groupStatement.executeQuery()) {
                                 if (groupResultSet.next()) {
-                                    groupJson.put("start_date",  groupResultSet.getDate("start_date"));
-                                    groupJson.put("end_date",  groupResultSet.getDate("end_date"));
+                                    groupJson.put("start_date",  groupResultSet.getTimestamp("start_date"));
+                                    groupJson.put("end_date",  groupResultSet.getTimestamp("end_date"));
                                     groupJson.put("is_active",  groupResultSet.getBoolean("is_active"));
                                     groupJson.put("starting_cash",  groupResultSet.getFloat("starting_cash"));
                                     if (!groupResultSet.getBoolean("has_been_deleted")) {
@@ -178,8 +179,8 @@ public class GroupsHandler implements HttpHandler {
                     while (resultSet.next()) {
                         JSONObject groupJson = new JSONObject();
                         groupJson.put("group_name", resultSet.getString("group_name"));
-                        groupJson.put("start_date", resultSet.getDate("start_date"));
-                        groupJson.put("end_date", resultSet.getDate("end_date"));
+                        groupJson.put("start_date", resultSet.getTimestamp("start_date"));
+                        groupJson.put("end_date", resultSet.getTimestamp("end_date"));
                         groupJson.put("is_active", resultSet.getBoolean("is_active"));
                         groupJson.put("starting_cash", resultSet.getFloat("starting_cash"));
                         groupsArray.put(groupJson);
@@ -204,8 +205,8 @@ public class GroupsHandler implements HttpHandler {
                     while (resultSet.next()) {
                         JSONObject groupJson = new JSONObject();
                         groupJson.put("group_name", resultSet.getString("group_name"));
-                        groupJson.put("start_date", resultSet.getDate("start_date"));
-                        groupJson.put("end_date", resultSet.getDate("end_date"));
+                        groupJson.put("start_date", resultSet.getTimestamp("start_date"));
+                        groupJson.put("end_date", resultSet.getTimestamp("end_date"));
                         groupJson.put("is_active", resultSet.getBoolean("is_active"));
                         groupJson.put("starting_cash", resultSet.getFloat("starting_cash"));
                         groupsArray.put(groupJson);

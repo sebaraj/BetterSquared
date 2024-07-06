@@ -88,7 +88,7 @@ public class UpdateGameEndSettleBetTask implements Job {
                     ResultSet rs = checkStmt.executeQuery();
                     int gameId = 0, count = 0;
                     if (rs.next()) {
-                        gameId = rs.getInt("id");
+                        gameId = rs.getInt("game_id");
                         count = 1;
                     }
                     rs.close();
