@@ -67,7 +67,7 @@ Backend of a group-based, simulated sports betting app. Written in Java, utilizi
 
 ## Deploying:
 
-Note: I have intentionally left all env variables (in configmaps/secrets) visible and the files unencrypted for straight-forward deployment. This is NOT a suitable solution for deployment. If you would like to customize/change them, please see the respective yaml files.
+Note: I have intentionally left all env variables (in configmaps/secrets) visible and the files unencrypted for straight-forward deployment. This is NOT a suitable solution for a production environment. If you would like to customize/change them, please see the respective yaml files.
 
 ### PostgreSQL
 - Install PostgreSQL
@@ -141,16 +141,18 @@ Note: I have intentionally left all env variables (in configmaps/secrets) visibl
 ## To-Do
 - Infrastructure:
   - Add rigorous testing suite: unit tests, docker build time tests, end-to-end tests, and performance tests
+  - Rewrite UpdateGroup cronjob to handle change group start/end date-times.  
   - Configure all Postgres connections to use TLS and implement asynchronous, streaming replication for Postgres
   - Switch internal (synchronous) HTTP w/ JSON (not AMQP) service-to-service messages to gRPC
   - Implement logging framework (log4j)
-  - Re-draw backend architecture using proper tooling
 - Features:
-  - Provide user  
-  - Add more leagues/bet types
-  - Implement parlay bets
-  - Implement ability to restrict groups to a subset of leagues
-- Deploy to Cloud Platform
+  - Provide user 
+  - Add more leagues/bet types and implement parlay bets
+  - Implement ability to restrict groups to a subset of leagues and control user admission to groups
+- Deploy to Cloud Platform:
   - Switch to more rigorous identity and access management system
   - Define infrastructure via Terraform
   - Switch to CA certificates
+- Other:
+  - Re-draw backend architecture using proper tooling
+  - Refactor codebase with better OOP design & variable-naming convention
