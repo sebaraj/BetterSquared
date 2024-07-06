@@ -146,7 +146,7 @@ Note: I have intentionally left all env variables (in configmaps/secrets) visibl
   - Switch internal (synchronous) HTTP w/ JSON (not AMQP) service-to-service messages to gRPC
   - Implement logging framework (log4j)
 - Features:
-  - Provide user 
+  - Provide user with a bet advisor/AI assistant  
   - Add more leagues/bet types and implement parlay bets
   - Implement ability to restrict groups to a subset of leagues and control user admission to groups
 - Deploy to Cloud Platform:
