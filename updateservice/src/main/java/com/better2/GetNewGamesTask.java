@@ -17,6 +17,10 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.sql.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -28,19 +32,19 @@ public class GetNewGamesTask implements Job {
     @Override
     public void execute(JobExecutionContext context) throws JobExecutionException {
         System.out.println("GetNewGamesTask: Executing job");
-        LocalDate today = LocalDate.now();
-        LocalDate datein2Days = today.plusDays(2);
+        LocalDateTime today = LocalDateTime.now(ZoneOffset.UTC);
+        LocalDateTime dateIn2Days = today.plusDays(2);
         API_KEY = System.getenv("UPDATE_API_KEY");
         if (API_KEY == null) {
             throw new JobExecutionException("API key not found in environment variables");
         }
-        callApiAndStoreGames(today.format(DateTimeFormatter.ISO_DATE), datein2Days.format(DateTimeFormatter.ISO_DATE));
+        callApiAndStoreGames(today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")), dateIn2Days.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'")));
     }
 
     private void callApiAndStoreGames(String date, String dateIn2Days) {
         try {
             // Constructing API connection for specific date range
-            API_URL ="https://api.the-odds-api.com/v4/sports/basketball_nba/odds/?apiKey=" + API_KEY + "&regions=us&markets=h2h&oddsFormat=american&bookmakers=draftkings&commenceTimeFrom=" + date + "&commenceTimeTo=" + dateIn2Days;
+            API_URL ="https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey=" + API_KEY + "&regions=us&bookmakers=fanduel&markets=h2h&oddsFormat=american&commenceTimeFrom=" + date + "&commenceTimeTo=" + dateIn2Days;
             URL url = new URL(API_URL);
             HttpURLConnection connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
@@ -73,7 +77,7 @@ public class GetNewGamesTask implements Job {
             dbConnection = connectToDatabase();
             String checkGameQuery = "SELECT COUNT(*) FROM games WHERE api_id = ?";
             String insertGameQuery = "INSERT INTO games (api_id, league, game_start_time, team1, team2, odds1, odds2, last_update, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-            String updateGameQuery = "UPDATE games SET team1 = ?, odds1 = ?, team2 = ?, odds2 = ?, last_update = ? WHERE api_id = ?";
+            String updateGameQuery = "UPDATE games SET team1 = ?, odds1 = ?, team2 = ?, odds2 = ?, last_update = ?, game_start_time = ? WHERE api_id = ?";
             PreparedStatement checkStmt = dbConnection.prepareStatement(checkGameQuery);
             PreparedStatement insertStmt = dbConnection.prepareStatement(insertGameQuery);
             PreparedStatement updateStmt = dbConnection.prepareStatement(updateGameQuery);
@@ -87,15 +91,19 @@ public class GetNewGamesTask implements Job {
                 Game.Bookmaker bookmaker = game.getBookmakers().get(0);
                 Game.Outcome outcome1 = bookmaker.getMarkets().get(0).getOutcomes().get(0);
                 Game.Outcome outcome2 = bookmaker.getMarkets().get(0).getOutcomes().get(1);
-                LocalDate localDate = LocalDate.parse(bookmaker.getLast_update(), DateTimeFormatter.ISO_LOCAL_DATE);
+                ZonedDateTime zonedDateTime = ZonedDateTime.parse(bookmaker.getLast_update(), DateTimeFormatter.ISO_DATE_TIME); // DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX"));
+                ZonedDateTime zonedStartDateTime = ZonedDateTime.parse(game.getCommence_time(), DateTimeFormatter.ISO_DATE_TIME);
+                //LocalDateTime localDate = zonedDateTime.toLocalDate();
                 // If game exists, update it
                 if (count == 1) {
                     updateStmt.setString(1, game.getHome_team());
                     updateStmt.setFloat(2, outcome1.getPrice());
                     updateStmt.setString(3, game.getAway_team());
                     updateStmt.setFloat(4, outcome2.getPrice());
-                    updateStmt.setDate(5, Date.valueOf(localDate));
-                    updateStmt.setString(6, game.getId());
+                    //updateStmt.setDate(5, Date.valueOf(localDate));
+                    updateStmt.setTimestamp(5, Timestamp.valueOf(zonedDateTime.toLocalDateTime()));
+                    updateStmt.setTimestamp(6, Timestamp.valueOf(zonedStartDateTime.toLocalDateTime()));
+                    updateStmt.setString(7, game.getId());
                     updateStmt.executeUpdate();
                 }
 
@@ -103,13 +111,16 @@ public class GetNewGamesTask implements Job {
                 if (count == 0) {
                     insertStmt.setString(1, game.getId());
                     insertStmt.setString(2, game.getSport_key());
-                    LocalDate startTime = LocalDate.parse(game.getCommence_time(), DateTimeFormatter.ISO_LOCAL_DATE);
-                    insertStmt.setDate(3, Date.valueOf(startTime));
+                     // DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssX"));
+                    //LocalDateTime startTime = zonedStartDateTime.toLocalDate();
+                    //LocalDate startTime = LocalDate.parse(game.getCommence_time(), DateTimeFormatter.ISO_LOCAL_DATE);
+                    //insertStmt.setDate(3, Date.valueOf(startTime));
+                    insertStmt.setTimestamp(3, Timestamp.valueOf(zonedStartDateTime.toLocalDateTime()));
                     insertStmt.setString(4, game.getHome_team());
                     insertStmt.setString(5, game.getAway_team());
                     insertStmt.setFloat(6, outcome1.getPrice());
                     insertStmt.setFloat(7, outcome2.getPrice());
-                    insertStmt.setDate(8, Date.valueOf(localDate));
+                    insertStmt.setTimestamp(8, Timestamp.valueOf(zonedDateTime.toLocalDateTime()));
                     insertStmt.setString(9, "upcoming");
                     insertStmt.executeUpdate();
                 }
@@ -123,6 +134,7 @@ public class GetNewGamesTask implements Job {
     static class Game {
         private String id;
         private String sport_key;
+        private String sport_title;
         private String commence_time;
         private String home_team;
         private String away_team;
@@ -150,11 +162,15 @@ public class GetNewGamesTask implements Job {
 
         public static class Market {
             private String key;
+            private String last_update;
             private List<Outcome> outcomes;
 
             // Getters and setters for each field
             public String getKey() { return key; }
             public void setKey(String key) { this.key = key; }
+
+            public String getLast_update() { return last_update; }
+            public void setLast_update(String last_update) { this.last_update = last_update; }
 
             public List<Outcome> getOutcomes() { return outcomes; }
             public void setOutcomes(List<Outcome> outcomes) { this.outcomes = outcomes; }
@@ -182,6 +198,9 @@ public class GetNewGamesTask implements Job {
 
         public String getSport_key() { return sport_key; }
         public void setSport_key(String sport_key) { this.sport_key = sport_key; }
+
+        public String getSport_title() { return sport_title; }
+        public void setSport_title(String sport_title) { this.sport_title = sport_title; }
 
         public String getCommence_time() { return commence_time; }
         public void setCommence_time(String commence_time) { this.commence_time = commence_time; }

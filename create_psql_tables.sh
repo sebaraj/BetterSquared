@@ -122,6 +122,39 @@ CREATE TABLE bets (
       is_parlay BOOLEAN NOT NULL DEFAULT FALSE
       );
 CREATE INDEX idx_bets_user_group_distributed ON bets (username, group_name, been_distributed);
+
+INSERT INTO Teams (team_name, league) VALUES
+('Arizona Diamondbacks', 'baseball_mlb'),
+('Atlanta Braves', 'baseball_mlb'),
+('Baltimore Orioles', 'baseball_mlb'),
+('Boston Red Sox', 'baseball_mlb'),
+('Chicago White Sox', 'baseball_mlb'),
+('Chicago Cubs', 'baseball_mlb'),
+('Cincinnati Reds', 'baseball_mlb'),
+('Cleveland Guardians', 'baseball_mlb'),
+('Colorado Rockies', 'baseball_mlb'),
+('Detroit Tigers', 'baseball_mlb'),
+('Houston Astros', 'baseball_mlb'),
+('Kansas City Royals', 'baseball_mlb'),
+('Los Angeles Angels', 'baseball_mlb'),
+('Los Angeles Dodgers', 'baseball_mlb'),
+('Miami Marlins', 'baseball_mlb'),
+('Milwaukee Brewers', 'baseball_mlb'),
+('Minnesota Twins', 'baseball_mlb'),
+('New York Yankees', 'baseball_mlb'),
+('New York Mets', 'baseball_mlb'),
+('Oakland Athletics', 'baseball_mlb'),
+('Philadelphia Phillies', 'baseball_mlb'),
+('Pittsburgh Pirates', 'baseball_mlb'),
+('San Diego Padres', 'baseball_mlb'),
+('San Francisco Giants', 'baseball_mlb'),
+('Seattle Mariners', 'baseball_mlb'),
+('St. Louis Cardinals', 'baseball_mlb'),
+('Tampa Bay Rays', 'baseball_mlb'),
+('Texas Rangers', 'baseball_mlb'),
+('Toronto Blue Jays', 'baseball_mlb'),
+('Washington Nationals', 'baseball_mlb');
+
 CREATE OR REPLACE FUNCTION set_default_current_cash()
 RETURNS TRIGGER AS \$\$
 BEGIN

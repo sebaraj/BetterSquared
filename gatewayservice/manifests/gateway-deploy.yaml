@@ -21,6 +21,7 @@ spec:
       containers:
         - name: gateway
           image: bryanwsebaraj/gateway:1.0
+          imagePullPolicy: Always
           envFrom:
             - configMapRef:
                 name: gateway-configmap

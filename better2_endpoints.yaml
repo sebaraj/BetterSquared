@@ -12,83 +12,773 @@ servers:
   - url: https://better2.com
 tags:
   - name: user
-    description:
+    description: User-related endpoints
   - name: bet
-    description:
+    description: Bet-related endpoints
   - name: group
-    description:
+    description: Group-related endpoints
 paths:
+  /bet/{group_name}:
+    get:
+      tags:
+        - bet
+      summary: Get all leagues for a group
+      parameters:
+        - in: path
+          name: group_name
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          example: Bearer <token>
+      responses:
+        200:
+          description: List of leagues
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    subleague_of:
+                      type: string
+        410:
+          description: Group has been deleted
+        500:
+          description: Internal server error
+  /bet/{group_name}/view/{league_name}:
+    get:
+      tags:
+        - bet
+      summary: Get all games for a league
+      parameters:
+        - in: path
+          name: group_name
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: league_name
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          example: Bearer <token>
+      responses:
+        200:
+          description: List of games
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    game_id:
+                      type: integer
+                    team1:
+                      type: string
+                    odds1:
+                      type: number
+                    line1:
+                      type: number
+                    score1:
+                      type: integer
+                    team2:
+                      type: string
+                    odds2:
+                      type: number
+                    line2:
+                      type: number
+                    score2:
+                      type: integer
+                    last_update:
+                      type: string
+                      format: date-time
+                    game_start_time:
+                      type: string
+                      format: date-time
+                    status:
+                      type: string
+                    winner:
+                      type: string
+                    league:
+                      type: string
+        410:
+          description: Group has been deleted
+        500:
+          description: Internal server error
+  /bet/{group_name}/view/{league_name}/{game_id}:
+    get:
+      tags:
+        - bet
+      summary: Get game details by ID
+      parameters:
+        - in: path
+          name: group_name
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: league_name
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: game_id
+          required: true
+          schema:
+            type: integer
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          example: Bearer <token>
+      responses:
+        200:
+          description: Game details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  game_id:
+                    type: integer
+                  team1:
+                    type: string
+                  odds1:
+                    type: number
+                  line1:
+                    type: number
+                  score1:
+                    type: integer
+                  team2:
+                    type: string
+                  odds2:
+                    type: number
+                  line2:
+                    type: number
+                  score2:
+                    type: integer
+                  last_update:
+                    type: string
+                    format: date-time
+                  game_start_time:
+                    type: string
+                    format: date-time
+                  status:
+                    type: string
+                  winner:
+                    type: string
+                  league:
+                    type: string
+        410:
+          description: Group has been deleted
+        500:
+          description: Internal server error
+  /bet/{group_name}/buy:
+    post:
+      tags:
+        - bet
+      summary: Buy a bet
+      parameters:
+        - in: path
+          name: group_name
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          example: Bearer <token>
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                game_id:
+                  type: integer
+                type:
+                  type: string
+                wagered:
+                  type: number
+                picked_winner:
+                  type: string
+      responses:
+        200:
+          description: Bet placed successfully
+        400:
+          description: Invalid request
+        404:
+          description: Game not found
+        500:
+          description: Internal server error
+  /bet/{group_name}/sell:
+    put:
+      tags:
+        - bet
+      summary: Sell a bet
+      parameters:
+        - in: path
+          name: group_name
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          example: Bearer <token>
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bet_id:
+                  type: integer
+      responses:
+        200:
+          description: Bet sold successfully
+        400:
+          description: Invalid request
+        404:
+          description: Bet not found
+        500:
+          description: Internal server error
+  /group:
+    post:
+      tags:
+        - group
+      summary: Create a group
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          example: Bearer <token>
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                group_name:
+                  type: string
+                start_date:
+                  type: string
+                  format: date-time
+                end_date:
+                  type: string
+                  format: date-time
+                starting_cash:
+                  type: number
+      responses:
+        200:
+          description: Group formed successfully
+        500:
+          description: Create group failed
+  /group/{group_name}:
+    get:
+      tags:
+        - group
+      summary: Get group details
+      parameters:
+        - in: path
+          name: group_name
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          example: Bearer <token>
+      responses:
+        200:
+          description: Group details
+        410:
+          description: Group has been deleted
+        404:
+          description: Group not found
+        500:
+          description: Internal server error
+    put:
+      tags:
+        - group
+      summary: Update a group
+      parameters:
+        - in: path
+          name: group_name
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          example: Bearer <token>
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                start_date:
+                  type: string
+                  format: date-time
+                end_date:
+                  type: string
+                  format: date-time
+                starting_cash:
+                  type: number
+      responses:
+        200:
+          description: Group updated successfully
+        400:
+          description: Invalid request
+        500:
+          description: Update group failed
+    delete:
+      tags:
+        - group
+      summary: Delete a group
+      parameters:
+        - in: path
+          name: group_name
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          example: Bearer <token>
+      responses:
+        200:
+          description: Group successfully deleted
+        403:
+          description: Only group creator can delete groups
+        404:
+          description: Group not found
+        500:
+          description: Delete group failed
+  /group/{group_name}/join:
+    post:
+      tags:
+        - group
+      summary: Join a group
+      parameters:
+        - in: path
+          name: group_name
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          example: Bearer <token>
+      responses:
+        200:
+          description: User joined group successfully
+        403:
+          description: User already in group
+        410:
+          description: Group has already been deleted
+        500:
+          description: Internal server error
+  /group/{group_name}/leave:
+    delete:
+      tags:
+        - group
+      summary: Leave a group
+      parameters:
+        - in: path
+          name: group_name
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          example: Bearer <token>
+      responses:
+        200:
+          description: User left group successfully
+        403:
+          description: Group creator cannot leave group
+        410:
+          description: Group has already been deleted
+        500:
+          description: Internal server error
+  /group/{group_name}/admin:
+    put:
+      tags:
+        - group
+      summary: Promote a user to admin
+      parameters:
+        - in: path
+          name: group_name
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          example: Bearer <token>
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                admin:
+                  type: string
+                role:
+                  type: integer
+      responses:
+        200:
+          description: User promoted to admin
+        400:
+          description: Cannot demote group creator to admin
+        403:
+          description: Only group creators can promote user to admin
+        410:
+          description: Group has already been deleted
+        500:
+          description: Promote user to admin failed
+  /group/{group_name}/user/{username}:
+    get:
+      tags:
+        - group
+      summary: Get user bet cash in group
+      parameters:
+        - in: path
+          name: group_name
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: username
+          required: true
+          schema:
+            type: string
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          example: Bearer <token>
+      responses:
+        200:
+          description: User bet cash details
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  oneOf:
+                    - type: object
+                      properties:
+                        username:
+                          type: string
+                        group_name:
+                          type: string
+                        group_role:
+                          type: string
+                        current_cash:
+                          type: number
+                    - type: object
+                      properties:
+                        type:
+                          type: string
+                        wagered:
+                          type: number
+                        amount_to_win:
+                          type: number
+                        picked_winner:
+                          type: string
+                        time_placed:
+                          type: string
+                          format: date-time
+                        been_distributed:
+                          type: boolean
+                        is_parlay:
+                          type: boolean
+                        team1:
+                          type: string
+                        odds1:
+                          type: number
+                        line1:
+                          type: number
+                        score1:
+                          type: integer
+                        team2:
+                          type: string
+                        odds2:
+                          type: number
+                        line2:
+                          type: number
+                        score2:
+                          type: integer
+                        last_update:
+                          type: string
+                          format: date-time
+                        game_start_time:
+                          type: string
+                          format: date-time
+                        status:
+                          type: string
+                        winner:
+                          type: string
+                        league:
+                          type: string
+        404:
+          description: Target user not in group
+        410:
+          description: Group has already been deleted
+        500:
+          description: Get bets/cash for target user failed
+
+  /group/{group_name}/users:
+    get:
+      tags:
+        - group
+      summary: Get user list in group
+      parameters:
+        - in: path
+          name: group_name
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          example: Bearer <token>
+      responses:
+        200:
+          description: User list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    username:
+                      type: string
+                    current_cash:
+                      type: number
+                    group_role:
+                      type: string
+        410:
+          description: Group has already been deleted
+        500:
+          description: Get user list failed
+  /groups:
+    get:
+      tags:
+        - group
+      summary: Get all groups of the user
+      parameters:
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          example: Bearer <token>
+      responses:
+        200:
+          description: List of groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    group_name:
+                      type: string
+                    current_cash:
+                      type: number
+                    start_date:
+                      type: string
+                      format: date-time
+                    end_date:
+                      type: string
+                      format: date-time
+                    is_active:
+                      type: boolean
+                    starting_cash:
+                      type: number
+        401:
+          description: Authorization token not provided
+        500:
+          description: Could not get user accounts
+  /groups/search:
+    get:
+      tags:
+        - group
+      summary: Search groups by name
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+        - in: query
+          name: name
+          schema:
+            type: string
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+          example: Bearer <token>
+      responses:
+        200:
+          description: List of groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    group_name:
+                      type: string
+                    start_date:
+                      type: string
+                      format: date-time
+                    end_date:
+                      type: string
+                      format: date-time
+                    is_active:
+                      type: boolean
+                    starting_cash:
+                      type: number
+        400:
+          description: Incorrect query parameters
+        500:
+          description: Could not get groups by substring
   /signup:
     post:
       tags:
         - user
-      summary: Create user account
-      description:
-      operationId: createUser
+      summary: Sign up a new user
       requestBody:
-        description: Create user object
+        required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/User'
+              type: object
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
       responses:
-        '200':
-          description: User successfully created
-          content:
-            application/json:
-              schema:
-                type: User successfully created
-          '400':
-            description: Invalid username/password supplied'
-            content:
-              application/json:
-                schema:
-                  type: error user not created
-
-
+        200:
+          description: User signed up successfully
+        400:
+          description: Invalid email address or password too short
+        500:
+          description: Auth service sign-up failed
   /login:
     post:
       tags:
         - user
-      summary: Logs user into the system
-      description: ''
-      operationId: loginUser
-      parameters:
-        - name: username
-          in: json
-          description: The user name for login
-          required: true
-          schema:
-            type: string
-        - name: password
-          in: query
-          description: The password for login in clear text
-          required: true
-          schema:
-            type: string
+      summary: Log in a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
       responses:
-        '200':
-          description: successful operation
+        200:
+          description: User authenticated
           content:
             application/json:
               schema:
-                type: string
-        '400':
-          description: Invalid username/password supplied
-
-components:
-  schemas:
-    User:
-      type: object
-      properties:
-        username:
-          type: string
-          examples: [theUser]
-        email:
-          type: string
-          examples: [john@email.com]
-        password:
-          type: string
-          examples: ['123456789']
-      xml:
-        name: user
+                type: object
+                properties:
+                  token:
+                    type: string
+        401:
+          description: Unauthorized
+        404:
+          description: User not found
+        500:
+          description: Internal server error
+  /forgotpassword:
+    put:
+      tags:
+        - user
+      summary: Reset a user's password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+      responses:
+        200:
+          description: Reset password successfully
+        500:
+          description: Auth service reset password failed

@@ -21,10 +21,15 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Date;
+import java.sql.Timestamp;
+import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.Map;
 import java.util.HashMap;
+
 
 public class GroupHandler implements HttpHandler {
 
@@ -113,7 +118,7 @@ public class GroupHandler implements HttpHandler {
                     } else if (makeAdminMatcher.matches()) {
                         System.out.println("GroupHandler: Handling MakeAdmin.");
                         group_name = makeAdminMatcher.group(1);
-                        handleMakeAdmin(exchange, group_name, clientUsername);
+                        handleToggleAdmin(exchange, group_name, clientUsername);
                     } else {
                         System.out.println("GroupHandler: Invalid PUT request.");
                         sendResponse(exchange, 404, "{\"error\": \"GroupService: endpoint does not exit\"}");
@@ -188,10 +193,10 @@ public class GroupHandler implements HttpHandler {
             sendResponse(exchange, 410, "{\"error\": \"Group has been deleted\"}");
             return;
         }
-        if (roleInGroup(username, group_name) > 3) {
-            sendResponse(exchange, 403, "{\"error\": \"User not in group\"}");
-            return;
-        }
+        //if (roleInGroup(username, group_name) > 3) {
+        //    sendResponse(exchange, 403, "{\"error\": \"User not in group\"}");
+        //    return;
+       // }
         String query = "SELECT * FROM groups WHERE group_name = ?";
         try (PreparedStatement statement = dbConnection.prepareStatement(query)) {
             statement.setString(1, group_name);
@@ -199,9 +204,9 @@ public class GroupHandler implements HttpHandler {
                 if (resultSet.next()) {
                     JSONObject messageJson = new JSONObject();
                     messageJson.put("group_name", resultSet.getString("group_name"));
-                    messageJson.put("created_at", resultSet.getDate("created_at"));
-                    messageJson.put("start_date", resultSet.getDate("start_date"));
-                    messageJson.put("end_date", resultSet.getDate("end_date"));
+                    messageJson.put("created_at", resultSet.getTimestamp("created_at"));
+                    messageJson.put("start_date", resultSet.getTimestamp("start_date"));
+                    messageJson.put("end_date", resultSet.getTimestamp("end_date"));
                     messageJson.put("is_active", resultSet.getBoolean("is_active"));
                     messageJson.put("starting_cash", resultSet.getFloat("starting_cash"));
                     String message = messageJson.toString();
@@ -223,9 +228,14 @@ public class GroupHandler implements HttpHandler {
 
             JSONObject jsonObject = new JSONObject(requestBody);
             String group_name = jsonObject.getString("group_name");
-            Date start_date = Date.valueOf(jsonObject.getString("start_date"));
-            Date end_date = Date.valueOf(jsonObject.getString("end_date"));
-            boolean is_active = start_date.before(new Date(System.currentTimeMillis()));
+
+            DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE_TIME;
+            OffsetDateTime startDateTime = OffsetDateTime.parse(jsonObject.getString("start_date"), formatter);
+            OffsetDateTime endDateTime = OffsetDateTime.parse(jsonObject.getString("end_date"), formatter);
+            Timestamp start_date = Timestamp.valueOf(startDateTime.toLocalDateTime());
+            Timestamp end_date = Timestamp.valueOf(endDateTime.toLocalDateTime());
+
+            boolean is_active = start_date.before(new Timestamp(System.currentTimeMillis()));
             float starting_cash = (float) jsonObject.getDouble("starting_cash");
             try {
                 // Begin transaction
@@ -233,8 +243,8 @@ public class GroupHandler implements HttpHandler {
                 String insertGroup = "INSERT INTO groups (group_name, start_date, end_date, is_active, starting_cash) VALUES (?,?,?,?,?)";
                 try (PreparedStatement preparedStatement = dbConnection.prepareStatement(insertGroup)) {
                     preparedStatement.setString(1, group_name);
-                    preparedStatement.setDate(2, start_date);
-                    preparedStatement.setDate(3, end_date);
+                    preparedStatement.setTimestamp(2, start_date);
+                    preparedStatement.setTimestamp(3, end_date);
                     preparedStatement.setBoolean(4, is_active);
                     preparedStatement.setFloat(5, starting_cash);
                     preparedStatement.executeUpdate();
@@ -335,12 +345,17 @@ public class GroupHandler implements HttpHandler {
             InputStream inputStream = exchange.getRequestBody();
             String requestBody = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
             JSONObject jsonObject = new JSONObject(requestBody);
-            Date updated_start_date = Date.valueOf(jsonObject.getString("start_date"));
-            Date updated_end_date = Date.valueOf(jsonObject.getString("end_date"));
-            boolean updated_is_active = updated_start_date.before(new Date(System.currentTimeMillis()));
+
+            DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE_TIME;
+            OffsetDateTime updatedStartDateTime = OffsetDateTime.parse(jsonObject.getString("start_date"), formatter);
+            OffsetDateTime updatedEndDateTime = OffsetDateTime.parse(jsonObject.getString("end_date"), formatter);
+            Timestamp updated_start_date = Timestamp.valueOf(updatedStartDateTime.toLocalDateTime());
+            Timestamp updated_end_date = Timestamp.valueOf(updatedEndDateTime.toLocalDateTime());
+
+            boolean updated_is_active = updated_start_date.before(new Timestamp(System.currentTimeMillis()));
             float updated_starting_cash = (float) jsonObject.getDouble("starting_cash");
             boolean isActive;
-            Date old_start_date, old_end_date;
+            Timestamp old_start_date, old_end_date;
             System.out.println("GroupHandler: Executing initial query for group update");
             String query = "SELECT * FROM groups WHERE group_name = ?";
             try (PreparedStatement statement = dbConnection.prepareStatement(query)) {
@@ -348,8 +363,8 @@ public class GroupHandler implements HttpHandler {
                 try (ResultSet resultSet = statement.executeQuery()) {
                     if (resultSet.next()) {
                         isActive =  resultSet.getBoolean("is_active");
-                        old_start_date = resultSet.getDate("start_date");
-                        old_end_date = resultSet.getDate("end_date");
+                        old_start_date = resultSet.getTimestamp("start_date");
+                        old_end_date = resultSet.getTimestamp("end_date");
                     } else {
                         throw new SQLException("Group not found");
                     }
@@ -364,7 +379,7 @@ public class GroupHandler implements HttpHandler {
                 }
                 String update = "UPDATE groups SET end_date = ? WHERE group_name = ?";
                 try (PreparedStatement statement = dbConnection.prepareStatement(update)) {
-                    statement.setDate(1, updated_end_date);
+                    statement.setTimestamp(1, updated_end_date);
                     statement.setString(2, group_name);
                     int rowsAffected = statement.executeUpdate();
 
@@ -380,8 +395,8 @@ public class GroupHandler implements HttpHandler {
             } else if (!isActive && !old_end_date.before(current_time)) {
                 String update = "UPDATE groups SET start_date = ?, end_date = ?, starting_cash = ?, is_active = ? WHERE group_name = ?";
                 try (PreparedStatement statement = dbConnection.prepareStatement(update)) {
-                    statement.setDate(1, updated_start_date);
-                    statement.setDate(2, updated_end_date);
+                    statement.setTimestamp(1, updated_start_date);
+                    statement.setTimestamp(2, updated_end_date);
                     statement.setFloat(3, updated_starting_cash);
                     statement.setBoolean(4, updated_is_active);
                     statement.setString(5, group_name);
@@ -477,7 +492,7 @@ public class GroupHandler implements HttpHandler {
                 return;
             }
             JSONArray jsonArray = new JSONArray();
-            String betQuery  = "SELECT * FROM accounts WHERE group_name = ? ORDER BY group_name LIMIT 50 OFFSET ? * 50";
+            String betQuery  = "SELECT * FROM accounts WHERE group_name = ? ORDER BY current_cash DESC LIMIT 50 OFFSET ? * 50";
             try (PreparedStatement betStatement = dbConnection.prepareStatement(betQuery)) {
                 betStatement.setString(1, group_name);
                 betStatement.setInt(2, page);
@@ -507,8 +522,9 @@ public class GroupHandler implements HttpHandler {
         }
     }
 
-    private void handleMakeAdmin(HttpExchange exchange, String group_name, String username) throws IOException, SQLException {
+    private void handleToggleAdmin(HttpExchange exchange, String group_name, String username) throws IOException, SQLException {
         String targetUsername = "";
+        int inputRole = 2;
         try {
             if (has_been_deleted(group_name)) {
                 sendResponse(exchange, 410, "{\"error\": \"Group has already been deleted\"}");
@@ -525,18 +541,17 @@ public class GroupHandler implements HttpHandler {
             String requestBody = new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
             JSONObject jsonObject = new JSONObject(requestBody);
             targetUsername = jsonObject.getString("admin");
+            inputRole = jsonObject.getInt("role");
+            System.out.println("GroupHandler: Changing " + targetUsername + " to " + inputRole);
 
             // Checking current role of target user for promotion
             int targetRole = roleInGroup(targetUsername, group_name);
             if (targetRole == 1) {
                 sendResponse(exchange, 400, "{\"error\": \"Cannot demote group creator to admin.\"}");
                 return;
-            } else if (targetRole == 2) {
-                sendResponse(exchange, 400, "{\"error\": \"Target user already admin.\"}");
-                return;
             }
 
-            int adminRole = 2;
+            int adminRole = (inputRole == 2) ? 2 : 3;
             String update = "UPDATE accounts SET group_role_id = ? WHERE username = ? AND group_name = ?";
             try (PreparedStatement statement = dbConnection.prepareStatement(update)) {
                 statement.setInt(1, adminRole);
@@ -563,10 +578,10 @@ public class GroupHandler implements HttpHandler {
                 sendResponse(exchange, 410, "{\"error\": \"Group has already been deleted\"}");
                 return;
             }
-            if (roleInGroup(username, group_name) > 3) {
-                sendResponse(exchange, 403, "{\"error\": \"Only group members can acccess user information.\"}");
-                return;
-            }
+            //if (roleInGroup(username, group_name) > 3) {
+            //    sendResponse(exchange, 403, "{\"error\": \"Only group members can acccess user information.\"}");
+            //    return;
+            //}
 
             JSONArray jsonArray = new JSONArray();
             String accountQuery = "SELECT * FROM accounts WHERE username = ? AND group_name = ?";
@@ -578,7 +593,16 @@ public class GroupHandler implements HttpHandler {
                         JSONObject accountJson = new JSONObject();
                         accountJson.put("username", resultSet.getString("username"));
                         accountJson.put("group_name", resultSet.getString("group_name"));
-                        accountJson.put("group_role_id", resultSet.getInt("group_role_id"));
+
+                        String role = "Group Member";
+                        // this is probably faster than waiting on a SQL read + client doesnt have to transform string
+                        if (resultSet.getInt("group_role_id") == 1) {
+                            role = "Group Creator";
+                        } else if (resultSet.getInt("group_role_id") == 2) {
+                            role = "Group Administrator";
+                        }
+                        accountJson.put("group_role", role);
+                        //accountJson.put("group_role_id", resultSet.getInt("group_role_id"));
                         accountJson.put("current_cash", resultSet.getFloat("current_cash"));
                         jsonArray.put(accountJson);
                     } else {
@@ -599,8 +623,8 @@ public class GroupHandler implements HttpHandler {
                         messageJson.put("wagered", resultSet.getFloat("wagered"));
                         messageJson.put("amount_to_win", resultSet.getFloat("amount_to_win"));
                         messageJson.put("picked_winner", resultSet.getString("picked_winner"));
-                        messageJson.put("time_placed", resultSet.getDate("time_placed"));
-                        messageJson.put("been_distributed", resultSet.getBoolean("current_cash"));
+                        messageJson.put("time_placed", resultSet.getTimestamp("time_placed"));
+                        messageJson.put("been_distributed", resultSet.getBoolean("been_distributed"));
                         messageJson.put("is_parlay", resultSet.getBoolean("is_parlay"));
 
                         String gameQuery = "SELECT * FROM games WHERE game_id = ?";
@@ -611,11 +635,13 @@ public class GroupHandler implements HttpHandler {
                                 messageJson.put("team1", gameResultSet.getString("team1"));
                                 messageJson.put("odds1", gameResultSet.getFloat("odds1"));
                                 messageJson.put("line1", gameResultSet.getFloat("line1"));
+                                messageJson.put("score1", gameResultSet.getInt("score1"));
                                 messageJson.put("team2", gameResultSet.getString("team2"));
                                 messageJson.put("odds2", gameResultSet.getFloat("odds2"));
                                 messageJson.put("line2", gameResultSet.getFloat("line2"));
-                                messageJson.put("last_update", gameResultSet.getDate("last_update"));
-                                messageJson.put("game_start_time", gameResultSet.getDate("game_start_time"));
+                                messageJson.put("score2", gameResultSet.getInt("score2"));
+                                messageJson.put("last_update", gameResultSet.getTimestamp("last_update"));
+                                messageJson.put("game_start_time", gameResultSet.getTimestamp("game_start_time"));
                                 messageJson.put("status", gameResultSet.getString("status"));
                                 messageJson.put("winner", gameResultSet.getString("winner"));
                                 messageJson.put("league", gameResultSet.getString("league"));

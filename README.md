@@ -50,10 +50,10 @@ Backend of a group-based, simulated sports betting app. Written in Java, utilizi
 ### Update Cronjobs
 - Performs the following non-client-facing jobs:
 
-  - Adds new games on information from api call (runs as a scheduled cronjob on non-persistent pods)
-  - Updates game status from "upcoming" to "playing" when game starts via Quartz scheduler and appropriate triggers (runs on persistent pod)
-  - Updates game status from "playing" to "settled" based on information from api call and distributes winnings to users on respective bets (runs as a scheduled cronjob on non-persistent pods)
-  - Updates group status after the last active day (runs as a scheduled cronjob on non-persistent pods)
+  - Adds new games on information from api call (runs as a scheduled cronjob on non-persistent containers)
+  - Updates game status from "upcoming" to "playing" when game starts via Quartz scheduler and appropriate triggers (runs on a persistent container)
+  - Updates game status from "playing" to "settled" based on information from api call and distributes winnings to users on respective bets (runs as a scheduled cronjob on non-persistent containers)
+  - Updates group status after the last active day (runs as a scheduled cronjob on non-persistent containers)
 - Completed jobs/pods are manually garbage collected every 6 hours (see ./cleanpods/manifests)
 
 ### RabbitMQ
@@ -104,7 +104,12 @@ Note: I have intentionally left all env variables (in configmaps/secrets) visibl
 
 ### Self-signed certificate
 - Generate your own self-signed certificate for TLS:
-  - In the root of this project directory, run: `openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN=better2.com"`.
+  - In the root of this project directory, run: 
+  - `openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt -config openssl.cnf`
+  - `sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain tls.crt`
+- Install the Certificate in Your Browser:
+  - Go to chrome://settings/security
+  - Under "Manage certificates", import tls.crt and trust it.
 
 ### /etc/hosts
 - Add `127.0.0.1 better2.com`, `127.0.0.1 kubernetes.docker.internal`, and `{minikube_ip} host.minikube.internal` to /etc/hosts (need sudo permissions).
@@ -136,11 +141,18 @@ Note: I have intentionally left all env variables (in configmaps/secrets) visibl
 ## To-Do
 - Infrastructure:
   - Add rigorous testing suite: unit tests, docker build time tests, end-to-end tests, and performance tests
+  - Rewrite UpdateGroup cronjob to handle change group start/end date-times.  
   - Configure all Postgres connections to use TLS and implement asynchronous, streaming replication for Postgres
-  - Switch internal HTTP w/ JSON (not AMQP) service-to-service messages to gRPC
+  - Switch internal (synchronous) HTTP w/ JSON (not AMQP) service-to-service messages to gRPC
   - Implement logging framework (log4j)
-  - Re-draw backend architecture using proper tooling
 - Features:
-  - Add more leagues/bet types
-  - Implement parlay bets
-  - Implement ability to restrict groups to a subset of leagues
+  - Provide user 
+  - Add more leagues/bet types and implement parlay bets
+  - Implement ability to restrict groups to a subset of leagues and control user admission to groups
+- Deploy to Cloud Platform:
+  - Switch to more rigorous identity and access management system
+  - Define infrastructure via Terraform
+  - Switch to CA certificates
+- Other:
+  - Re-draw backend architecture using proper tooling
+  - Refactor codebase with better OOP design & variable-naming convention

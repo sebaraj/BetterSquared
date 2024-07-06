@@ -15,6 +15,7 @@ spec:
       containers:
         - name: twemproxy
           image: bryanwsebaraj/twemproxy:1.0
+          imagePullPolicy: Always
           ports:
             - containerPort: 6379
           volumeMounts:

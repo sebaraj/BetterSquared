@@ -9,6 +9,7 @@ spec:
         - name: schedule-game-start
           image: bryanwsebaraj/update:1.0
           args: ["scheduleGameStart"]
+          imagePullPolicy: Always
           envFrom:
             - configMapRef:
                 name: update-configmap

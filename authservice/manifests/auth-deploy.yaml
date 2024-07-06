@@ -22,6 +22,7 @@ spec:
       containers:
         - name: auth
           image: bryanwsebaraj/auth:1.0
+          imagePullPolicy: Always
           ports:
             - containerPort: 5000
             - containerPort: 5432
