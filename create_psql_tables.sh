@@ -123,7 +123,9 @@ CREATE TABLE bets (
       );
 CREATE INDEX idx_bets_user_group_distributed ON bets (username, group_name, been_distributed);
 
-INSERT INTO Teams (team_name, league) VALUES
+INSERT INTO leagues (name) VALUES ('baseball_mlb');
+
+INSERT INTO teams (team_name, league) VALUES
 ('Arizona Diamondbacks', 'baseball_mlb'),
 ('Atlanta Braves', 'baseball_mlb'),
 ('Baltimore Orioles', 'baseball_mlb'),
@@ -153,7 +155,8 @@ INSERT INTO Teams (team_name, league) VALUES
 ('Tampa Bay Rays', 'baseball_mlb'),
 ('Texas Rangers', 'baseball_mlb'),
 ('Toronto Blue Jays', 'baseball_mlb'),
-('Washington Nationals', 'baseball_mlb');
+('Washington Nationals', 'baseball_mlb'),
+('sold', 'baseball_mlb');
 
 CREATE OR REPLACE FUNCTION set_default_current_cash()
 RETURNS TRIGGER AS \$\$
