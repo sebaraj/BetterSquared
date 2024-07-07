@@ -524,7 +524,7 @@ public class BetHandler implements HttpHandler {
 
             // atomically read bets user bet_id to get wagered and check that the bet exists , update if bets !been_distributed and update accounts where current_cash += from bet
             String query = "SELECT * FROM bets WHERE bet_id = ? AND username = ? AND group_name = ? FOR UPDATE";
-            String updateBet = "UPDATE bets SET been_distributed = true WHERE bet_id = ?";
+            String updateBet = "UPDATE bets SET been_distributed = true, picked_winner = 'sold' WHERE bet_id = ?";
             String updateAccount = "UPDATE accounts SET current_cash = current_cash + ? WHERE username = ? AND group_name = ?";
             try (PreparedStatement checkBetStatement = dbConnection.prepareStatement(query)) {
                 checkBetStatement.setInt(1, bet_id);
