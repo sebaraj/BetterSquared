@@ -141,11 +141,12 @@ Note: I have intentionally left all env variables (in configmaps/secrets) visibl
 ## To-Do
 - Infrastructure:
   - Add rigorous testing suite: unit tests, docker build time tests, end-to-end tests, and performance tests
-  - Rewrite UpdateGroup cronjob to handle change group start/end date-times.  
+  - Rewrite UpdateGroup cronjob to handle changing group start/end date-times.  
   - Configure all Postgres connections to use TLS and implement asynchronous, streaming replication for Postgres
   - Switch internal (synchronous) HTTP w/ JSON (not AMQP) service-to-service messages to gRPC
   - Implement logging framework (log4j)
 - Features:
+  - Implement advertisements to allow users (under certain conditions, perhaps total cash + expected payouts being less than 20% of the group starting cash) to prevent users from running out of money during the betting period, while generating revenue for the application. 
   - Provide user with a bet advisor/AI assistant  
   - Add more leagues/bet types and implement parlay bets
   - Implement ability to restrict groups to a subset of leagues and control user admission to groups
